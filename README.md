@@ -6,6 +6,7 @@
 
 -   🤖 **AI-Driven Lead Extraction**: Leverages Google Gemini via Supabase Edge Functions for intelligent data parsing.
 -   🎯 **Campaign Management**: Organize leads into targeted campaigns with real-time status tracking.
+-   👨‍💻 **Admin User Management**: Complete admin control over users including Impersonation, Banning, and Invite creation.
 -   ⚖️ **Why Us Comparison Engine**: A dedicated, data-driven comparison section highlighting our 99.8% verification accuracy over traditional tools.
 -   📊 **Interactive Dashboard**: Modern analytics overview with global search and notification systems.
 -   💳 **Tiered Subscriptions**: Full Stripe integration supporting Pro ($19/mo) and Enterprise ($79/mo) plans.
@@ -66,6 +67,7 @@ supabase link --project-ref your-project-id
 supabase functions deploy extract-leads
 supabase functions deploy stripe-webhook
 supabase functions deploy verify-payment
+supabase functions deploy admin-create-user
 
 # Set secrets
 supabase secrets set GEMINI_API_KEY=your_key
