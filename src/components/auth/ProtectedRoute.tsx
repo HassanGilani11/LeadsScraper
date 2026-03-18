@@ -7,7 +7,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { session, isLoading } = useStore();
+    const { session, user, isLoading } = useStore();
     const location = useLocation();
 
     if (isLoading) {
@@ -21,6 +21,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (!session) {
         // Redirect to /auth but save the current location they were trying to access
         return <Navigate to="/auth" state={{ from: location }} replace />;
+    }
+
+    if (user?.status === 'Pending' && location.pathname !== '/reset-password') {
+        return <Navigate to="/reset-password" replace />;
     }
 
     return <>{children}</>;

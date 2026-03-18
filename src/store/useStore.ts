@@ -12,6 +12,7 @@ interface UserProfile {
     company?: string;
     avatar_url?: string;
     last_reset_date?: string;
+    status?: string;
 }
 
 export interface Campaign {

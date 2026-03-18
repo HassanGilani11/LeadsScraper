@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { ShieldAlert } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
@@ -12,7 +13,8 @@ import {
     Settings,
     HelpCircle,
     LogOut,
-    Zap
+    Zap,
+    UserCog
 } from 'lucide-react';
 
 const navItems = [
@@ -82,6 +84,25 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                         </Link>
                     );
                 })}
+
+                {/* Admin Support Section */}
+                {user?.role === 'Admin' && (
+                    <div className="pt-6 mt-6 border-t border-slate-100">
+                        <div className="px-3 mb-2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Admin Control</div>
+                        <Link
+                            to="/admin/users"
+                            className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer
+                                ${pathname === '/admin/users'
+                                    ? 'bg-[#1b57b1]/10 text-[#1b57b1]'
+                                    : 'text-slate-600 hover:bg-slate-100'}
+                            `}
+                        >
+                            <UserCog size={20} />
+                            <span>User Management</span>
+                        </Link>
+                    </div>
+                )}
             </nav>
 
             {/* Footer */}
@@ -108,21 +129,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                     </p>
                 </div>
 
-                {/* User Profile Mini-Card */}
-                <div className="flex items-center gap-3 p-3 bg-white border border-slate-100 rounded-xl mb-4 shadow-sm group hover:border-[#1b57b1]/30 hover:shadow-md hover:shadow-[#1b57b1]/5 transition-all cursor-pointer" onClick={() => navigate('/settings')}>
-                    <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200 flex items-center justify-center text-[#1b57b1] font-bold text-xs uppercase transition-transform group-hover:scale-105">
-                        {user?.avatar_url ? (
-                            <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                            user?.full_name?.split(' ').map(n => n[0]).join('') || '?'
-                        )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-slate-900 truncate leading-none mb-1">{user?.full_name || 'Hassan Gilani'}</p>
-                        <p className="text-[10px] text-slate-500 font-medium truncate uppercase tracking-wider">{user?.role || 'Member'}</p>
-                    </div>
-                    <Settings size={14} className="text-slate-300 group-hover:text-slate-500 transition-colors" />
-                </div>
+
 
                 {/* Upgrade button — hidden for Enterprise */}
                 {user?.plan !== 'Enterprise' && (

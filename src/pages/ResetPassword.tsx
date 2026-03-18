@@ -12,7 +12,7 @@ const ResetPassword = () => {
     const [success, setSuccess] = useState(false);
     
     const navigate = useNavigate();
-    const { session } = useStore();
+    const { session, setSession } = useStore();
 
     // If there is no session, they shouldn't be here (recovery link provides a temporary session)
     if (!session) {
@@ -42,6 +42,13 @@ const ResetPassword = () => {
 
             if (error) throw error;
 
+            // Update the profile status to Active since they have now completed the invite loop
+            await supabase.from('profiles').update({ status: 'Active' }).eq('id', session.user.id);
+
+            // Immediately clear the session so they are forced to log in with their new credentials
+            await supabase.auth.signOut();
+            setSession(null);
+            
             setSuccess(true);
             setTimeout(() => {
                 navigate('/auth', { state: { message: 'Password updated successfully! Please login with your new password.' } });

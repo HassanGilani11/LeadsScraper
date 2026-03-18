@@ -14,9 +14,10 @@ import LandingPage from '@/pages/LandingPage';
 import BillingSuccess from '@/pages/BillingSuccess';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import PublicRoute from '@/components/auth/PublicRoute';
+import UserManagement from '@/pages/admin/UserManagement';
 
 const App = () => {
-    const { session, setSession, setUser, setLoading, isLoading, setCampaigns } = useStore();
+    const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns } = useStore();
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -125,6 +126,7 @@ const App = () => {
                     company: data.company || '',
                     avatar_url: data.avatar_url || '',
                     last_reset_date: needsReset ? now.toISOString() : data.last_reset_date,
+                    status: data.status || 'Active',
                 });
                 await fetchCampaigns(data.id);
             } else if (!error) {
@@ -138,7 +140,8 @@ const App = () => {
                     plan: 'Starter' as const,
                     credits: 0,
                     max_credits: 20,
-                    last_reset_date: new Date().toISOString()
+                    last_reset_date: new Date().toISOString(),
+                    status: 'Active'
                 };
                 await supabase.from('profiles').insert(newProfile);
                 setUser({
@@ -151,7 +154,8 @@ const App = () => {
                     max_credits: newProfile.max_credits,
                     company: '',
                     avatar_url: '',
-                    last_reset_date: newProfile.last_reset_date
+                    last_reset_date: newProfile.last_reset_date,
+                    status: newProfile.status
                 });
                 await fetchCampaigns(newProfile.id);
             }
@@ -245,6 +249,16 @@ const App = () => {
                 element={
                     <ProtectedRoute>
                         <BillingSuccess />
+                    </ProtectedRoute>
+                } 
+            />
+
+            {/* Admin Routes */}
+            <Route 
+                path="/admin/users" 
+                element={
+                    <ProtectedRoute>
+                        {user?.role === 'Admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />}
                     </ProtectedRoute>
                 } 
             />
