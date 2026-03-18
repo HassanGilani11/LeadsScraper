@@ -66,6 +66,7 @@ supabase link --project-ref your-project-id
 # Deploy Edge Functions
 supabase functions deploy extract-leads
 supabase functions deploy stripe-webhook
+supabase functions deploy create-checkout-session
 supabase functions deploy verify-payment
 supabase functions deploy admin-create-user
 
