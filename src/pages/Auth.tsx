@@ -48,14 +48,26 @@ const Auth = () => {
                         data: {
                             full_name: fullName,
                         },
+                        emailRedirectTo: `${window.location.origin}/reset-password`,
                     },
                 });
                 if (error) throw error;
+
+                // Set their profile status to Pending so they are forced to go through
+                // the /reset-password flow when they land after confirming their email.
+                if (data.user) {
+                    await supabase
+                        .from('profiles')
+                        .update({ status: 'Pending' })
+                        .eq('id', data.user.id);
+                }
+
                 if (data.session) {
-                    setSession(data.session);
-                    navigate('/dashboard');
+                    // If email confirmation is disabled in Supabase, they get a session right away.
+                    // We can still redirect them to reset-password so they confirm their password.
+                    navigate('/reset-password');
                 } else {
-                    setSuccessMsg('Check your email for confirmation link!');
+                    setSuccessMsg('Check your email for a confirmation link to complete your signup!');
                 }
             }
         } catch (err: any) {

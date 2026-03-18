@@ -80,7 +80,7 @@ const ResetPassword = () => {
                                 <Sparkles size={24} />
                             </div>
                             <h2 className="text-xl font-bold text-slate-900">Password Updated!</h2>
-                            <p className="text-slate-500 mt-2">Your password has been reset successfully. Redirecting you to dashboard...</p>
+                            <p className="text-slate-500 mt-2">Your password has been set successfully. Redirecting you to login...</p>
                         </div>
                     ) : (
                         <form onSubmit={handleReset} className="space-y-4">

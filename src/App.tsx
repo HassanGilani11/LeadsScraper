@@ -21,22 +21,29 @@ const App = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Initial session check
+        let initialFetchDone = false;
+
+        // Initial session check — primary source of truth on page load
         supabase.auth.getSession().then(({ data: { session } }) => {
             setSession(session);
             if (session?.user) {
+                initialFetchDone = true;
                 fetchProfile(session.user.id, session.user.email!);
             } else {
                 setLoading(false);
             }
         });
 
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        // Listen for auth changes — only re-fetch on explicit sign-in events,
+        // NOT on TOKEN_REFRESHED which would cause a race condition that overwrites the correct count
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             setSession(session);
-            if (session?.user) {
-                fetchProfile(session.user.id, session.user.email!);
-            } else {
+            if (session?.user && (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY')) {
+                if (!initialFetchDone) {
+                    fetchProfile(session.user.id, session.user.email!);
+                }
+                initialFetchDone = false; // allow future sign-ins to re-fetch
+            } else if (!session) {
                 setUser(null);
                 setLoading(false);
             }
@@ -55,20 +62,41 @@ const App = () => {
 
             if (error) throw error;
 
-            if (campaigns) {
-                const campaignsWithCounts = await Promise.all(campaigns.map(async (camp: any) => {
-                    const { count } = await supabase
-                        .from('leads')
-                        .select('*', { count: 'exact', head: true })
-                        .eq('campaign_id', camp.id);
-                    
-                    return {
-                        ...camp,
-                        leads: count || 0,
-                        tags: camp.target_keywords || [] 
-                    };
+            if (campaigns && campaigns.length > 0) {
+                const campaignIds = campaigns.map((c: any) => c.id);
+
+                // Fetch all leads for this user's campaigns in one query
+                const { data: leadsData, error: leadsError } = await supabase
+                    .from('leads')
+                    .select('id, campaign_id')
+                    .in('campaign_id', campaignIds);
+
+                if (leadsError) {
+                    console.error('Error fetching leads for campaigns:', leadsError);
+                }
+
+                console.log('Leads fetched for campaigns:', leadsData);
+
+                // Build a count map from the fetched leads
+                const countMap: Record<string, number> = {};
+                if (leadsData) {
+                    leadsData.forEach((lead: { id: string; campaign_id: string }) => {
+                        if (lead.campaign_id) {
+                            countMap[lead.campaign_id] = (countMap[lead.campaign_id] || 0) + 1;
+                        }
+                    });
+                }
+
+                console.log('Lead count map:', countMap);
+
+                const campaignsWithCounts = campaigns.map((camp: any) => ({
+                    ...camp,
+                    leads: countMap[camp.id] ?? 0,
+                    tags: camp.target_keywords || []
                 }));
                 setCampaigns(campaignsWithCounts);
+            } else if (campaigns) {
+                setCampaigns([]);
             }
         } catch (err) {
             console.error('Error fetching campaigns:', err);
