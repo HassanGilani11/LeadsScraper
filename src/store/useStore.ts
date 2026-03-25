@@ -38,6 +38,7 @@ export interface Lead {
     campaign_id?: string;
     icp_score?: number;
     industry?: string;
+    source?: string;
 }
 
 export interface Notification {

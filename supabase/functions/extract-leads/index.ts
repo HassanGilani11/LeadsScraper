@@ -94,7 +94,8 @@ Deno.serve(async (req: Request) => {
         industry: lead.industry || 'Other',
         icp_score: lead.icp_score || 0,
         source_url: url || null,
-        status: 'new'
+        status: 'new',
+        source: 'scraper'
       }));
 
       const { data, error } = await supabase

@@ -1,11 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppContainer from '@/components/layout/AppContainer';
-import { Users, Mail, Download, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send } from 'lucide-react';
+import { Users, Mail, Download, Upload, FileText, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send, Database } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore, Lead } from '@/store/useStore';
 import { toast } from 'sonner';
 import BulkEmailModal from '@/components/modals/BulkEmailModal';
+import AssignToCampaignModal from '@/components/modals/AssignToCampaignModal';
+import { Target } from 'lucide-react';
 
 const LeadsList = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -23,6 +25,11 @@ const LeadsList = () => {
     const [singleEmailLead, setSingleEmailLead] = useState<Lead | null>(null);
     const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
     const [emailStatusMap, setEmailStatusMap] = useState<Record<string, { status: 'sent' | 'failed'; error?: string }>>({});
+    const [showAssignModal, setShowAssignModal] = useState(false);
+    const [leadsToAssign, setLeadsToAssign] = useState<Lead[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [companyFilter, setCompanyFilter] = useState('all');
+    const [sourceFilter, setSourceFilter] = useState('all');
 
     useEffect(() => {
         if (user) {
@@ -124,21 +131,23 @@ const LeadsList = () => {
 
         if (itemsToExport.length === 0) return;
         
-        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Date Created'];
+        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Date Created', 'Industry', 'ICP Score'];
         const rows = itemsToExport.map(lead => [
             lead.first_name || '',
             lead.last_name || '',
             lead.email,
             lead.company || '',
             lead.status || 'new',
-            lead.created_at || ''
+            lead.created_at || '',
+            lead.industry || '',
+            lead.icp_score || '0'
         ]);
         
         // Add BOM for Excel compatibility
         const BOM = '\uFEFF';
         const csvContent = BOM + [
             headers.join(','),
-            ...rows.map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
+            ...rows.map(row => row.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(','))
         ].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -146,6 +155,147 @@ const LeadsList = () => {
         const link = document.createElement('a');
         link.setAttribute('href', url);
         link.setAttribute('download', `leads_export_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const handleImportCSV = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file || !user) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            let text = e.target?.result as string;
+            if (!text) return;
+
+            // Remove UTF-8 BOM if present
+            if (text.startsWith('\uFEFF')) {
+                text = text.substring(1);
+            }
+
+            const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                toast.error('The CSV file is empty or has no data rows.');
+                return;
+            }
+
+            const parseCSVLine = (line: string) => {
+                const result = [];
+                let current = '';
+                let inQuotes = false;
+                for (let i = 0; i < line.length; i++) {
+                    const char = line[i];
+                    if (char === '"') {
+                        if (inQuotes && line[i + 1] === '"') {
+                            current += '"';
+                            i++;
+                        } else {
+                            inQuotes = !inQuotes;
+                        }
+                    } else if (char === ',' && !inQuotes) {
+                        result.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                result.push(current.trim());
+                return result;
+            };
+
+            const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().trim());
+            const emailIndex = headers.findIndex(h => h.includes('email'));
+
+            if (emailIndex === -1) {
+                toast.error('The CSV file must contain an "Email" column. Found: ' + headers.join(', '));
+                return;
+            }
+
+            const firstNameIndex = headers.findIndex(h => h.includes('first name'));
+            const lastNameIndex = headers.findIndex(h => h.includes('last name'));
+            const companyIndex = headers.findIndex(h => h.includes('company'));
+            const statusIndex = headers.findIndex(h => h.includes('status'));
+            const industryIndex = headers.findIndex(h => h.includes('industry'));
+            const icpScoreIndex = headers.findIndex(h => h.includes('icp score'));
+
+            const newLeads = [];
+            for (let i = 1; i < lines.length; i++) {
+                try {
+                    const values = parseCSVLine(lines[i]);
+                    if (values.length === 0) continue;
+
+                    const email = values[emailIndex];
+                    if (!email || !email.includes('@')) continue;
+
+                    newLeads.push({
+                        user_id: user.id,
+                        email,
+                        first_name: firstNameIndex !== -1 ? (values[firstNameIndex] || null) : null,
+                        last_name: lastNameIndex !== -1 ? (values[lastNameIndex] || null) : null,
+                        company: companyIndex !== -1 ? (values[companyIndex] || null) : null,
+                        status: statusIndex !== -1 ? (values[statusIndex]?.toLowerCase() || 'new') : 'new',
+                        industry: industryIndex !== -1 ? (values[industryIndex] || null) : null,
+                        icp_score: icpScoreIndex !== -1 ? parseInt(values[icpScoreIndex]) || 0 : 0,
+                        campaign_id: campaignId || null,
+                        source: 'csv'
+                    });
+                } catch (parseErr) {
+                    console.error('Row parsing error at line ' + (i + 1), parseErr);
+                }
+            }
+
+            if (newLeads.length === 0) {
+                toast.error('No valid leads found in the CSV file. Please ensure emails are valid.');
+                return;
+            }
+
+            const loadingToast = toast.loading(`Importing ${newLeads.length} leads...`);
+            try {
+                const { error } = await supabase
+                    .from('leads')
+                    .insert(newLeads);
+
+                if (error) {
+                    toast.dismiss(loadingToast);
+                    toast.error(`Import failed: ${error.message}`);
+                    console.error('Supabase Import Error:', error);
+                    return;
+                }
+
+                toast.dismiss(loadingToast);
+                toast.success(`Successfully imported ${newLeads.length} leads.`);
+                fetchLeads();
+            } catch (err: any) {
+                console.error('Error importing leads:', err);
+                toast.dismiss(loadingToast);
+                toast.error(`Import failed: ${err.message || 'Check file format'}`);
+            } finally {
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            }
+        };
+        reader.readAsText(file);
+    };
+
+    const handleDownloadSampleCSV = () => {
+        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source'];
+        const sampleData = ['John', 'Doe', 'john.doe@example.com', 'Example Corp', 'New', 'Technology', '85', 'csv'];
+        
+        const csvContent = '\uFEFF' + [
+            headers.join(','),
+            sampleData.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'leads_sample_format.csv');
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -256,10 +406,15 @@ const LeadsList = () => {
         );
     };
 
+    const uniqueCompanies = Array.from(new Set(leads.map(l => l.company).filter(Boolean))).sort();
+
     const filteredLeads = leads
         .filter(lead => {
             const text = `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''}`.toLowerCase();
-            return text.includes(searchQuery.toLowerCase());
+            const matchesSearch = text.includes(searchQuery.toLowerCase());
+            const matchesCompany = companyFilter === 'all' || lead.company === companyFilter;
+            const matchesSource = sourceFilter === 'all' || (lead.source || 'scraper') === sourceFilter;
+            return matchesSearch && matchesCompany && matchesSource;
         })
         .sort((a, b) => {
             if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -311,29 +466,57 @@ const LeadsList = () => {
                         </div>
                     </div>
                     <div className="flex gap-3 w-full sm:w-auto">
-                        {(industryFilter || minScore || maxScore || campaignId) && (
+                        {(industryFilter || minScore || maxScore || campaignId || companyFilter !== 'all' || sourceFilter !== 'all') && (
                             <button 
-                                onClick={() => setSearchParams({})}
-                                className="flex-1 sm:flex-none px-4 py-2 border border-red-200 bg-red-50 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                                onClick={() => {
+                                    setSearchParams({});
+                                    setCompanyFilter('all');
+                                    setSourceFilter('all');
+                                }}
+                                className="flex-1 sm:flex-none px-4 py-2 border border-red-200 bg-red-50 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                             >
                                 <X size={18} />
                                 Clear Filter
                             </button>
                         )}
-                        <button 
-                            onClick={handleExportCSV}
-                            className="flex-1 sm:flex-none px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
-                        >
-                            <Download size={18} />
-                            Export CSV
-                        </button>
-                        <button 
-                            onClick={() => setShowBulkEmail(true)}
-                            className="flex-1 sm:flex-none px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer"
-                        >
-                            <Mail size={18} />
-                            Bulk Email
-                        </button>
+                        <div className="flex items-center gap-3 flex-1 sm:flex-none">
+                            <div className="relative group">
+                                <button 
+                                    onClick={handleImportCSV}
+                                    className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm group whitespace-nowrap"
+                                >
+                                    <Upload size={18} className="group-hover:-translate-y-0.5 transition-transform" />
+                                    Import CSV
+                                </button>
+                                <button 
+                                    onClick={handleDownloadSampleCSV}
+                                    className="absolute -bottom-5 left-0 right-0 text-[10px] text-[#1b57b1] hover:text-[#154690] hover:underline font-bold text-center transition-all opacity-80 hover:opacity-100 whitespace-nowrap"
+                                >
+                                    Download Sample Format
+                                </button>
+                            </div>
+                            <input 
+                                type="file" 
+                                ref={fileInputRef} 
+                                onChange={handleFileChange} 
+                                accept=".csv" 
+                                className="hidden" 
+                            />
+                            <button 
+                                onClick={handleExportCSV}
+                                className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
+                            >
+                                <Download size={18} />
+                                Export CSV
+                            </button>
+                            <button 
+                                onClick={() => setShowBulkEmail(true)}
+                                className="px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer whitespace-nowrap"
+                            >
+                                <Mail size={18} />
+                                Bulk Email
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -350,12 +533,55 @@ const LeadsList = () => {
                                 className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm"
                             />
                         </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto">
+                        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+                            {selectedRows.length > 0 && (
+                                <button
+                                    onClick={() => {
+                                        const selectedLeads = leads.filter(l => selectedRows.includes(l.id));
+                                        setLeadsToAssign(selectedLeads);
+                                        setShowAssignModal(true);
+                                    }}
+                                    className="flex items-center gap-2 px-4 py-2 bg-[#1b57b1]/5 border border-[#1b57b1] text-[#1b57b1] rounded-xl text-sm font-bold hover:bg-[#1b57b1]/10 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300"
+                                >
+                                    <Target size={18} />
+                                    Assign to Campaign ({selectedRows.length})
+                                </button>
+                            )}
+                            {/* Company Filter */}
+                            <div className="relative">
+                                <select 
+                                    value={companyFilter}
+                                    onChange={(e) => setCompanyFilter(e.target.value)}
+                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[140px]"
+                                >
+                                    <option value="all">All Companies</option>
+                                    {uniqueCompanies.map(company => (
+                                        <option key={company} value={company}>{company}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
+
+                            {/* Source Filter */}
+                            <div className="relative">
+                                <select 
+                                    value={sourceFilter}
+                                    onChange={(e) => setSourceFilter(e.target.value)}
+                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[140px]"
+                                >
+                                    <option value="all">All Sources</option>
+                                    <option value="csv">CSV Import</option>
+                                    <option value="scraper">Lead Scraper</option>
+                                </select>
+                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                            </div>
+
+                            {/* Sort Filter */}
                             <div className="relative">
                                 <select 
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] w-full sm:w-auto min-w-[160px]"
+                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[160px]"
                                 >
                                     <option value="newest">Sort by: Newest</option>
                                     <option value="oldest">Sort by: Oldest</option>
@@ -385,6 +611,7 @@ const LeadsList = () => {
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Email Sent</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
@@ -425,6 +652,20 @@ const LeadsList = () => {
                                                 {getStatusBadge(lead.status)}
                                             </td>
                                              <td className="p-4 text-sm text-slate-500 font-medium whitespace-nowrap">{lead.created_at}</td>
+                                             {/* Source Column */}
+                                             <td className="p-4">
+                                                 {lead.source === 'csv' ? (
+                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-100 whitespace-nowrap">
+                                                         <FileText size={12} />
+                                                         CSV Import
+                                                     </span>
+                                                 ) : (
+                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-purple-50 text-purple-700 border-purple-100 whitespace-nowrap">
+                                                         <Database size={12} />
+                                                         Lead Scraper
+                                                     </span>
+                                                 )}
+                                             </td>
                                              {/* Email Status Column */}
                                              <td className="p-4">
                                                  {emailStatusMap[lead.id]?.status === 'sent' ? (
@@ -484,16 +725,23 @@ const LeadsList = () => {
                                                              <div className="px-2 pb-2">
                                                                  <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead</p>
                                                                  <button
-                                                                     onClick={() => { setEditingLead(lead); setDropdownOpenId(null); }}
-                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                                                                 >
-                                                                     <Edit2 size={14} />
-                                                                     Edit Lead
-                                                                 </button>
-                                                                 <button
-                                                                     onClick={() => { handleDuplicateLead(lead); setDropdownOpenId(null); }}
-                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                                                                 >
+                                                                      onClick={() => { setEditingLead(lead); setDropdownOpenId(null); }}
+                                                                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                                                                  >
+                                                                      <Edit2 size={14} />
+                                                                      Edit Lead
+                                                                  </button>
+                                                                  <button
+                                                                      onClick={() => { setLeadsToAssign([lead]); setShowAssignModal(true); setDropdownOpenId(null); }}
+                                                                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                                                                  >
+                                                                      <Target size={14} />
+                                                                      Assign to Campaign
+                                                                  </button>
+                                                                  <button
+                                                                      onClick={() => { handleDuplicateLead(lead); setDropdownOpenId(null); }}
+                                                                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                                                                  >
                                                                      <Copy size={14} />
                                                                      Duplicate
                                                                  </button>
@@ -612,6 +860,7 @@ const LeadsList = () => {
                                 first_name: formData.get('first_name') as string,
                                 last_name: formData.get('last_name') as string,
                                 company: formData.get('company') as string,
+                                source: formData.get('source') as string,
                             });
                         }} className="p-6 space-y-4">
                             <div className="grid grid-cols-2 gap-4">
@@ -643,6 +892,17 @@ const LeadsList = () => {
                                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all"
                                 />
                             </div>
+                            <div className="space-y-1.5">
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Lead Source</label>
+                                <select 
+                                    name="source" 
+                                    defaultValue={editingLead.source || 'scraper'} 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all cursor-pointer"
+                                >
+                                    <option value="scraper">Lead Scraper</option>
+                                    <option value="csv">CSV Import</option>
+                                </select>
+                            </div>
                             <div className="space-y-1.5 opacity-60">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Email (Read Only)</label>
                                 <input 
@@ -659,6 +919,18 @@ const LeadsList = () => {
                     </div>
                 </div>
             )}
+
+            {/* Assign to Campaign Modal */}
+            <AssignToCampaignModal 
+                open={showAssignModal}
+                onClose={() => setShowAssignModal(false)}
+                leads={leadsToAssign}
+                onSuccess={() => {
+                    setShowAssignModal(false);
+                    setSelectedRows([]);
+                    fetchLeads(); // Refresh leads to show updated campaign association if needed
+                }}
+            />
         </AppContainer>
     );
 };

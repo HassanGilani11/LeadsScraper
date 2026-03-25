@@ -71,7 +71,15 @@ const Auth = () => {
                 }
             }
         } catch (err: any) {
-            setError(err.message || 'An error occurred');
+            let message = err.message || 'An error occurred';
+            if (isForgot && message.includes('Rate limit')) {
+                message = 'Too many requests. Please try again in an hour.';
+            } else if (isForgot && message.includes('Email not found')) {
+                message = 'No account found with this email address.';
+            } else if (isForgot && message.includes('recovery email')) {
+                message = 'Could not send reset link. Please verify your email or try again later.';
+            }
+            setError(message);
         } finally {
             setLoading(false);
         }
