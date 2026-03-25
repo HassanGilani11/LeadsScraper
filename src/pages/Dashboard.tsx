@@ -8,6 +8,21 @@ import {
     TrendingDown,
     Loader2
 } from 'lucide-react';
+import { 
+    AreaChart, 
+    Area, 
+    XAxis, 
+    YAxis, 
+    CartesianGrid, 
+    Tooltip, 
+    ResponsiveContainer,
+    PieChart,
+    Pie,
+    Cell,
+    BarChart,
+    Bar,
+    Rectangle
+} from 'recharts';
 
 const Dashboard = () => {
     const navigate = useNavigate();
@@ -18,8 +33,8 @@ const Dashboard = () => {
         totalLeads: 0,
         avgICP: 0,
         industryDist: [] as { name: string, value: number, color: string }[],
-        icpBreakdown: [0, 0, 0, 0, 0], // ranges: 1-2, 3-4, 5-6, 7-8, 9-10
-        acquisitionTrends: [] as number[],
+        icpBreakdown: [] as { name: string, count: number, range: string }[],
+        acquisitionTrends: [] as { date: string, count: number }[],
     });
 
     useEffect(() => {
@@ -71,39 +86,51 @@ const Dashboard = () => {
                 const industryDist = sortedIndustries.map(([name, count], i) => ({
                     name,
                     value: totalLeads > 0 ? Math.round((count / totalLeads) * 100) : 0,
+                    count,
                     color: colors[i] || '#e2e8f0'
                 }));
 
                 // ICP Breakdown
-                const icpBreakdown = [0, 0, 0, 0, 0];
+                const icpRanges = [
+                    { name: '1-2', range: '1-2', count: 0 },
+                    { name: '3-4', range: '3-4', count: 0 },
+                    { name: '5-6', range: '5-6', count: 0 },
+                    { name: '7-8', range: '7-8', count: 0 },
+                    { name: '9-10', range: '9-10', count: 0 },
+                ];
+                
                 leads.forEach(l => {
                     const score = Number(l.icp_score) || 0;
-                    if (score <= 2) icpBreakdown[0]++;
-                    else if (score <= 4) icpBreakdown[1]++;
-                    else if (score <= 6) icpBreakdown[2]++;
-                    else if (score <= 8) icpBreakdown[3]++;
-                    else icpBreakdown[4]++;
+                    if (score <= 2) icpRanges[0].count++;
+                    else if (score <= 4) icpRanges[1].count++;
+                    else if (score <= 6) icpRanges[2].count++;
+                    else if (score <= 8) icpRanges[3].count++;
+                    else icpRanges[4].count++;
                 });
 
                 // Acquisition Trends (Group by day)
                 const daysToFetch = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-                const dailyCounts = new Array(daysToFetch).fill(0);
+                const dailyData = [];
                 
-                leads.forEach(l => {
-                    const leadDate = new Date(l.created_at);
-                    const diffTime = Math.abs(now.getTime() - leadDate.getTime());
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    if (diffDays < daysToFetch) {
-                        dailyCounts[daysToFetch - 1 - diffDays]++;
-                    }
-                });
+                for (let i = daysToFetch - 1; i >= 0; i--) {
+                    const d = new Date();
+                    d.setDate(now.getDate() - i);
+                    const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    
+                    const count = leads.filter(l => {
+                        const leadDate = new Date(l.created_at);
+                        return leadDate.toDateString() === d.toDateString();
+                    }).length;
+                    
+                    dailyData.push({ date: dateStr, count });
+                }
 
                 setStats({
                     totalLeads,
                     avgICP,
                     industryDist,
-                    icpBreakdown,
-                    acquisitionTrends: dailyCounts
+                    icpBreakdown: icpRanges,
+                    acquisitionTrends: dailyData
                 });
             }
         } catch (err) {
@@ -111,6 +138,20 @@ const Dashboard = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const CustomTooltip = ({ active, payload, label }: any) => {
+        if (active && payload && payload.length) {
+            return (
+                <div className="bg-white p-3 border border-slate-200 shadow-xl rounded-lg">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">{label}</p>
+                    <p className="text-lg font-bold text-[#1b57b1]">
+                        {payload[0].value} <span className="text-sm font-medium text-slate-500">Leads</span>
+                    </p>
+                </div>
+            );
+        }
+        return null;
     };
 
     if (loading) {
@@ -152,10 +193,10 @@ const Dashboard = () => {
             </div>
 
             {/* Main Chart */}
-            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-8">
+            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+                <div className="flex justify-between items-center mb-10">
                     <div>
-                        <h4 className="text-lg font-bold text-slate-900">Lead Acquisition Trends</h4>
+                        <h4 className="text-xl font-bold text-slate-900">Lead Acquisition Trends</h4>
                         <p className="text-sm text-slate-500">New leads identified per day over the selected period</p>
                     </div>
                     <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
@@ -163,92 +204,120 @@ const Dashboard = () => {
                             <button 
                                 key={range}
                                 onClick={() => setDateRange(range)}
-                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-all ${dateRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${dateRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                             >
                                 {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
                             </button>
                         ))}
                     </div>
                 </div>
-                <div className="h-64 relative">
-                    <svg className="w-full h-full" preserveAspectRatio="none" viewBox="0 0 1000 200">
-                        <defs>
-                            <linearGradient id="areaGradient" x1="0" x2="0" y1="0" y2="1">
-                                <stop offset="0%" stopColor="#1b57b1" stopOpacity="0.3"></stop>
-                                <stop offset="100%" stopColor="#1b57b1" stopOpacity="0"></stop>
-                            </linearGradient>
-                        </defs>
-                        {stats.acquisitionTrends.length > 0 && (() => {
-                            const max = Math.max(...stats.acquisitionTrends, 1);
-                            const points = stats.acquisitionTrends.map((count, i) => {
-                                const x = (i / (stats.acquisitionTrends.length - 1)) * 1000;
-                                const y = 180 - (count / max) * 150;
-                                return `${x},${y}`;
-                            });
-                            const areaPath = `M0,200 L${points.join(' L')} L1000,200 Z`;
-                            const linePath = `M${points.join(' L')}`;
-                            return (
-                                <>
-                                    <path d={areaPath} fill="url(#areaGradient)"></path>
-                                    <path d={linePath} fill="none" stroke="#1b57b1" strokeWidth="3" strokeLinejoin="round" strokeLinecap="round"></path>
-                                </>
-                            );
-                        })()}
-                    </svg>
-                    <div className="flex justify-between mt-4 text-[11px] font-bold text-slate-400 uppercase tracking-widest px-2">
-                        <span>Day 1</span>
-                        <span>Day {Math.floor(stats.acquisitionTrends.length / 3)}</span>
-                        <span>Day {Math.floor(stats.acquisitionTrends.length * 2 / 3)}</span>
-                        <span>Day {stats.acquisitionTrends.length}</span>
-                    </div>
+                <div className="h-80 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart
+                            data={stats.acquisitionTrends}
+                            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                        >
+                            <defs>
+                                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#1b57b1" stopOpacity={0.15}/>
+                                    <stop offset="95%" stopColor="#1b57b1" stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis 
+                                dataKey="date" 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                                dy={15}
+                                interval={dateRange === '90d' ? 14 : dateRange === '30d' ? 4 : 0}
+                            />
+                            <YAxis 
+                                axisLine={false}
+                                tickLine={false}
+                                tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 600 }}
+                            />
+                            <Tooltip 
+                                content={<CustomTooltip />}
+                                cursor={{ stroke: '#1b57b1', strokeWidth: 2, strokeDasharray: '5 5' }}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="count" 
+                                stroke="#1b57b1" 
+                                strokeWidth={3}
+                                fillOpacity={1} 
+                                fill="url(#colorCount)" 
+                                animationDuration={1500}
+                                activeDot={{ r: 6, strokeWidth: 0, fill: '#1b57b1' }}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
                 </div>
             </div>
 
             {/* Secondary Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
                 {/* Industry Distribution */}
-                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                    <h4 className="text-lg font-bold mb-1 text-slate-900">Lead Distribution by Industry</h4>
+                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
+                    <h4 className="text-xl font-bold mb-1 text-slate-900">Lead Distribution by Industry</h4>
                     <p className="text-sm text-slate-500 mb-8">Breakdown of leads across top sectors</p>
-                    <div className="flex-1 flex items-center justify-around">
-                        <div className="relative w-40 h-40">
-                            <svg className="w-full h-full" viewBox="0 0 36 36">
-                                <circle cx="18" cy="18" fill="none" r="16" stroke="#e2e8f0" strokeWidth="4"></circle>
-                                {stats.industryDist.length > 0 ? (
-                                    stats.industryDist.map((ind, i) => {
-                                        // Simple dasharray visualization
-                                        const offset = stats.industryDist.slice(0, i).reduce((a, b) => a + b.value, 0);
-                                        return (
-                                            <circle 
-                                                key={ind.name}
-                                                cx="18" cy="18" fill="none" r="16" 
-                                                stroke={ind.color} 
-                                                strokeDasharray={`${ind.value}, 100`} 
-                                                strokeDashoffset={-offset} 
-                                                strokeWidth="4" 
-                                                className="cursor-pointer hover:stroke-blue-400 transition-all"
-                                                onClick={() => navigate(`/leads?industry=${encodeURIComponent(ind.name === 'Other' ? 'Other' : ind.name)}`)}
+                    <div className="flex-1 flex flex-col md:flex-row items-center justify-around gap-8">
+                        <div className="relative w-48 h-48">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={stats.industryDist}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                        stroke="none"
+                                        animationDuration={1500}
+                                    >
+                                        {stats.industryDist.map((entry, index) => (
+                                            <Cell 
+                                                key={`cell-${index}`} 
+                                                fill={entry.color} 
+                                                className="cursor-pointer focus:outline-none"
+                                                onClick={() => navigate(`/leads?industry=${encodeURIComponent(entry.name === 'Other' ? 'Other' : entry.name)}`)}
                                             />
-                                        );
-                                    })
-                                ) : (
-                                    <circle cx="18" cy="18" fill="none" r="16" stroke="#1b57b1" strokeDasharray="100, 100" strokeWidth="4"></circle>
-                                )}
-                            </svg>
-                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-xl font-bold text-slate-900">{stats.totalLeads > 1000 ? (stats.totalLeads/1000).toFixed(1)+'k' : stats.totalLeads}</span>
+                                        ))}
+                                    </Pie>
+                                    <Tooltip 
+                                        content={({ active, payload }: any) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-white p-2 px-3 border border-slate-200 shadow-xl rounded-lg">
+                                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">{payload[0].name}</p>
+                                                        <p className="text-sm font-bold text-slate-900">{payload[0].value}% ({payload[0].payload.count} leads)</p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
+                                    />
+                                </PieChart>
+                            </ResponsiveContainer>
+                            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                <span className="text-2xl font-bold text-slate-900">{stats.totalLeads > 1000 ? (stats.totalLeads/1000).toFixed(1)+'k' : stats.totalLeads}</span>
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Total</span>
                             </div>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-4">
                             {stats.industryDist.length > 0 ? stats.industryDist.map(ind => (
                                 <div 
                                     key={ind.name} 
-                                    className="flex items-center gap-3 cursor-pointer group"
+                                    className="flex items-center gap-4 cursor-pointer group"
                                     onClick={() => navigate(`/leads?industry=${encodeURIComponent(ind.name)}`)}
                                 >
-                                    <div className="size-3 rounded-full transition-transform group-hover:scale-125" style={{ backgroundColor: ind.color }}></div>
-                                    <span className="text-sm font-medium text-slate-700 group-hover:text-[#1b57b1] transition-colors">{ind.name} ({ind.value}%)</span>
+                                    <div className="size-3.5 rounded-full transition-all group-hover:ring-4 group-hover:ring-[#1b57b1]/10" style={{ backgroundColor: ind.color }}></div>
+                                    <div>
+                                        <p className="text-sm font-bold text-slate-700 group-hover:text-[#1b57b1] transition-colors leading-tight">{ind.name}</p>
+                                        <p className="text-[10px] font-bold text-slate-400">{ind.value}% • {ind.count} leads</p>
+                                    </div>
                                 </div>
                             )) : (
                                 <div className="text-sm text-slate-400 italic">No industry data available</div>
@@ -258,44 +327,66 @@ const Dashboard = () => {
                 </div>
 
                 {/* ICP Score Breakdown */}
-                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col">
-                    <h4 className="text-lg font-bold mb-1 text-slate-900">ICP Score Breakdown</h4>
+                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
+                    <h4 className="text-xl font-bold mb-1 text-slate-900">ICP Score Breakdown</h4>
                     <p className="text-sm text-slate-500 mb-8">Distribution of leads by ideal customer profile match</p>
-                    <div className="flex-1 flex items-end justify-between gap-2 h-40">
-                        <BarChartItem 
-                            count={stats.icpBreakdown[0]} 
-                            label="1-2" 
-                            height={`${Math.max(5, (stats.icpBreakdown[0] / Math.max(...stats.icpBreakdown, 1)) * 100)}%`} 
-                            onClick={() => navigate('/leads?minScore=1&maxScore=2')}
-                        />
-                        <BarChartItem 
-                            count={stats.icpBreakdown[1]} 
-                            label="3-4" 
-                            height={`${Math.max(5, (stats.icpBreakdown[1] / Math.max(...stats.icpBreakdown, 1)) * 100)}%`} 
-                            onClick={() => navigate('/leads?minScore=3&maxScore=4')}
-                        />
-                        <BarChartItem 
-                            count={stats.icpBreakdown[2]} 
-                            label="5-6" 
-                            height={`${Math.max(5, (stats.icpBreakdown[2] / Math.max(...stats.icpBreakdown, 1)) * 100)}%`} 
-                            onClick={() => navigate('/leads?minScore=5&maxScore=6')}
-                        />
-                        <BarChartItem 
-                            count={stats.icpBreakdown[3]} 
-                            label="7-8" 
-                            height={`${Math.max(5, (stats.icpBreakdown[3] / Math.max(...stats.icpBreakdown, 1)) * 100)}%`} 
-                            active 
-                            onClick={() => navigate('/leads?minScore=7&maxScore=8')}
-                        />
-                        <BarChartItem 
-                            count={stats.icpBreakdown[4]} 
-                            label="9-10" 
-                            height={`${Math.max(5, (stats.icpBreakdown[4] / Math.max(...stats.icpBreakdown, 1)) * 100)}%`} 
-                            primary 
-                            onClick={() => navigate('/leads?minScore=9&maxScore=10')}
-                        />
+                    <div className="flex-1 h-48 w-full mt-4">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart 
+                                data={stats.icpBreakdown}
+                                margin={{ top: 0, right: 0, left: -20, bottom: 0 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis 
+                                    dataKey="range" 
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    axisLine={false}
+                                    tickLine={false}
+                                    tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 700 }}
+                                />
+                                <Tooltip 
+                                    cursor={{ fill: '#f8fafc' }}
+                                    content={({ active, payload }: any) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white p-2 px-3 border border-slate-200 shadow-xl rounded-lg">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">Score Range: {payload[0].payload.range}</p>
+                                                    <p className="text-sm font-bold text-slate-900">{payload[0].value} Leads</p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
+                                />
+                                <Bar 
+                                    dataKey="count" 
+                                    fill="#1b57b1" 
+                                    radius={[4, 4, 0, 0]}
+                                    barSize={40}
+                                    animationDuration={1500}
+                                    className="cursor-pointer"
+                                    onClick={(data) => {
+                                        const [min, max] = data.range.split('-');
+                                        navigate(`/leads?minScore=${min}&maxScore=${max}`);
+                                    }}
+                                >
+                                    {stats.icpBreakdown.map((entry, index) => (
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={index >= 3 ? '#1b57b1' : index === 2 ? '#3b82f6' : '#e2e8f0'} 
+                                            className="transition-all hover:opacity-80"
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
-                    <div className="mt-6 flex justify-center text-xs text-slate-400 font-medium">
+                    <div className="mt-8 flex justify-center text-[10px] text-slate-400 font-bold uppercase tracking-widest">
                         <p>Scores weighted by revenue potential & firmographics</p>
                     </div>
                 </div>
@@ -315,41 +406,17 @@ interface KPICardProps {
 }
 
 const KPICard: React.FC<KPICardProps> = ({ title, value, trend, trendType, subtitle }) => (
-    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md h-full flex flex-col justify-between">
-        <p className="text-sm text-slate-500 font-medium">{title}</p>
+    <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md h-full flex flex-col justify-between group">
+        <p className="text-sm text-slate-500 font-medium group-hover:text-[#1b57b1] transition-colors">{title}</p>
         <div className="mt-2 flex items-end justify-between">
             <h3 className="text-3xl font-bold text-slate-900">{value}</h3>
             {trend && (
-                <span className={`text-sm font-bold flex items-center gap-0.5 ${trendType === 'up' ? 'text-green-600' : 'text-red-500'}`}>
+                <span className={`text-sm font-bold flex items-center gap-0.5 px-2 py-0.5 rounded-full ${trendType === 'up' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-500'}`}>
                     {trend}
                     {trendType === 'up' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
                 </span>
             )}
-            {subtitle && <span className="text-slate-400 text-sm font-medium uppercase tracking-wider">{subtitle}</span>}
+            {subtitle && <span className="text-slate-400 text-[10px] font-bold uppercase tracking-wider">{subtitle}</span>}
         </div>
-    </div>
-);
-
-interface BarChartItemProps {
-    height: string;
-    label: string;
-    count: number;
-    active?: boolean;
-    primary?: boolean;
-    onClick?: () => void;
-}
-
-const BarChartItem: React.FC<BarChartItemProps> = ({ height, label, count, active, primary, onClick }) => (
-    <div className="flex-1 flex flex-col items-center gap-2 group cursor-pointer" onClick={onClick}>
-        <div
-            className={`
-                w-full rounded-t transition-all duration-500
-                ${primary ? 'bg-[#1b57b1]' : active ? 'bg-[#1b57b1]/40' : 'bg-slate-100'} 
-                ${!primary && !active ? 'group-hover:bg-[#1b57b1]/30' : 'group-hover:opacity-80'}
-            `}
-            style={{ height }}
-            title={`${label}: ${count} leads`}
-        ></div>
-        <span className="text-[10px] text-slate-400 font-bold tracking-widest uppercase">{label}</span>
     </div>
 );

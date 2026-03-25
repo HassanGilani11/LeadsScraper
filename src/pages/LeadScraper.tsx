@@ -4,6 +4,7 @@ import { Search, Globe, Filter, AlertCircle, CheckCircle2, Loader2, ArrowRight, 
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
 
 const LeadScraper = () => {
@@ -56,9 +57,9 @@ const LeadScraper = () => {
         }
 
         try {
-            setLoading(true);
             setError(null);
             setSuccess(null);
+            toast.loading(`Starting extraction for ${url}...`, { id: 'scrape-toast' });
 
             if (!user) {
                 setError('You must be logged in to scrape leads.');
@@ -101,6 +102,7 @@ const LeadScraper = () => {
 
             if (data?.success) {
                 setSuccess(data.message);
+                toast.success(`Success! Extracted ${data.leads?.length || 0} leads.`, { id: 'scrape-toast' });
                 
                 // Add new leads to store and update campaign count
                 if (data.leads && Array.isArray(data.leads)) {
@@ -140,6 +142,7 @@ const LeadScraper = () => {
         } catch (err: any) {
             console.error('Scraping error:', err);
             setError(err.message || 'An unexpected error occurred during scraping.');
+            toast.error(err.message || 'Failed to extract leads', { id: 'scrape-toast' });
         } finally {
             setLoading(false);
         }

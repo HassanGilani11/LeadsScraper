@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppContainer from '@/components/layout/AppContainer';
-import { Users, Mail, Download, Search, MoreVertical, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy } from 'lucide-react';
+import { Users, Mail, Download, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore, Lead } from '@/store/useStore';
+import { toast } from 'sonner';
+import BulkEmailModal from '@/components/modals/BulkEmailModal';
 
 const LeadsList = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -11,16 +13,21 @@ const LeadsList = () => {
     const industryFilter = searchParams.get('industry');
     const minScore = searchParams.get('minScore');
     const maxScore = searchParams.get('maxScore');
-    const { user, leads, setLeads, addLead, searchQuery, setSearchQuery } = useStore();
+    const { user, leads, setLeads, addLead, searchQuery, setSearchQuery, addNotification } = useStore();
     const [campaignName, setCampaignName] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
     const [sortBy, setSortBy] = useState('newest');
     const [editingLead, setEditingLead] = useState<Lead | null>(null);
+    const [showBulkEmail, setShowBulkEmail] = useState(false);
+    const [singleEmailLead, setSingleEmailLead] = useState<Lead | null>(null);
+    const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
+    const [emailStatusMap, setEmailStatusMap] = useState<Record<string, { status: 'sent' | 'failed'; error?: string }>>({});
 
     useEffect(() => {
         if (user) {
             fetchLeads();
+            fetchEmailLogs();
             if (campaignId) fetchCampaignName();
         }
     }, [user, campaignId, industryFilter, minScore, maxScore]);
@@ -85,6 +92,31 @@ const LeadsList = () => {
         }
     };
 
+    const fetchEmailLogs = async () => {
+        if (!user) return;
+        try {
+            const { data } = await supabase
+                .from('email_logs')
+                .select('lead_id, status, error_message')
+                .eq('user_id', user.id)
+                .not('lead_id', 'is', null)
+                .order('sent_at', { ascending: false });
+
+            if (data) {
+                // Keep only the LATEST status per lead
+                const map: Record<string, { status: 'sent' | 'failed'; error?: string }> = {};
+                data.forEach(row => {
+                    if (row.lead_id && !map[row.lead_id]) {
+                        map[row.lead_id] = { status: row.status, error: row.error_message || undefined };
+                    }
+                });
+                setEmailStatusMap(map);
+            }
+        } catch (err) {
+            console.error('Error fetching email logs:', err);
+        }
+    };
+
     const handleExportCSV = () => {
         const itemsToExport = selectedRows.length > 0 
             ? leads.filter(lead => selectedRows.includes(lead.id))
@@ -142,10 +174,11 @@ const LeadsList = () => {
                     ...data,
                     created_at: new Date(data.created_at).toISOString().split('T')[0]
                 });
+                toast.success('Lead duplicated successfully');
             }
         } catch (err) {
             console.error('Error duplicating lead:', err);
-            alert('Failed to duplicate lead.');
+            toast.error('Failed to duplicate lead');
         }
     };
 
@@ -162,9 +195,10 @@ const LeadsList = () => {
             
             setLeads(leads.filter(lead => lead.id !== id));
             setSelectedRows(selectedRows.filter(rowId => rowId !== id));
+            toast.success('Lead deleted');
         } catch (error) {
             console.error('Error deleting lead:', error);
-            alert('Failed to delete lead. Please try again.');
+            toast.error('Failed to delete lead');
         }
     };
 
@@ -183,9 +217,10 @@ const LeadsList = () => {
                 lead.id === editingLead.id ? { ...lead, ...updatedLead } : lead
             ));
             setEditingLead(null);
+            toast.success('Lead updated');
         } catch (error) {
             console.error('Error updating lead:', error);
-            alert('Failed to update lead.');
+            toast.error('Failed to update lead');
         }
     };
 
@@ -230,8 +265,8 @@ const LeadsList = () => {
             if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
             if (sortBy === 'oldest') return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
             if (sortBy === 'name') {
-                const nameA = `${a.first_name || ''} ${a.last_name || ''}`.trim();
-                const nameB = `${b.first_name || ''} ${b.last_name || ''}`.trim();
+                const nameA = (`${a.first_name || ''} ${a.last_name || ''}`.trim()) || a.company || '';
+                const nameB = (`${b.first_name || ''} ${b.last_name || ''}`.trim()) || b.company || '';
                 return nameA.localeCompare(nameB);
             }
             if (sortBy === 'company') return (a.company || '').localeCompare(b.company || '');
@@ -292,7 +327,10 @@ const LeadsList = () => {
                             <Download size={18} />
                             Export CSV
                         </button>
-                        <button className="flex-1 sm:flex-none px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 cursor-not-allowed opacity-70 shadow-lg shadow-[#1b57b1]/20">
+                        <button 
+                            onClick={() => setShowBulkEmail(true)}
+                            className="flex-1 sm:flex-none px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer"
+                        >
                             <Mail size={18} />
                             Bulk Email
                         </button>
@@ -343,11 +381,12 @@ const LeadsList = () => {
                                             )}
                                         </button>
                                     </th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Email Sent</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -369,22 +408,13 @@ const LeadsList = () => {
                                             <td className="p-4">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 uppercase">
-                                                        {(lead.first_name?.[0] || '')}{(lead.last_name?.[0] || '')}
-                                                        {(!lead.first_name && !lead.last_name) && lead.email[0]}
+                                                        {(lead.first_name?.[0] || lead.last_name?.[0] || lead.company?.[0] || lead.email[0])}
                                                     </div>
                                                     <div>
                                                         <p className="font-bold text-slate-900 text-sm">
-                                                            {lead.first_name || lead.last_name ? `${lead.first_name || ''} ${lead.last_name || ''}` : (
-                                                                <span className="flex items-center gap-2">
-                                                                    Unnamed Lead
-                                                                    <button 
-                                                                        onClick={() => setEditingLead(lead)}
-                                                                        className="text-[10px] bg-[#1b57b1]/10 text-[#1b57b1] px-1.5 py-0.5 rounded-md hover:bg-[#1b57b1]/20 transition-all font-bold"
-                                                                    >
-                                                                        Set Name
-                                                                    </button>
-                                                                </span>
-                                                            )}
+                                                            {lead.first_name || lead.last_name
+                                                                ? `${lead.first_name || ''} ${lead.last_name || ''}`.trim()
+                                                                : (lead.company || lead.email)}
                                                         </p>
                                                         <p className="text-xs text-slate-500">{lead.email}</p>
                                                     </div>
@@ -394,37 +424,96 @@ const LeadsList = () => {
                                             <td className="p-4">
                                                 {getStatusBadge(lead.status)}
                                             </td>
-                                            <td className="p-4 text-sm text-slate-500 font-medium">{lead.created_at}</td>
-                                            <td className="p-4 text-right">
-                                                <div className="flex items-center justify-end gap-2">
-                                                    <button 
-                                                        onClick={() => handleDuplicateLead(lead)}
-                                                        className="p-2 text-slate-400 hover:bg-white hover:text-[#1b57b1] rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer"
-                                                        title="Duplicate Lead"
-                                                    >
-                                                        <Copy size={16} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => setEditingLead(lead)}
-                                                        className="p-2 text-slate-400 hover:bg-white hover:text-[#1b57b1] rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer"
-                                                        title="Edit Lead"
-                                                    >
-                                                        <Edit2 size={16} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleDeleteLead(lead.id)}
-                                                        className="p-2 text-slate-400 hover:bg-white hover:text-red-600 rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer"
-                                                        title="Delete Lead"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </div>
-                                            </td>
+                                             <td className="p-4 text-sm text-slate-500 font-medium whitespace-nowrap">{lead.created_at}</td>
+                                             {/* Email Status Column */}
+                                             <td className="p-4">
+                                                 {emailStatusMap[lead.id]?.status === 'sent' ? (
+                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-green-50 text-green-700 border-green-200 whitespace-nowrap">
+                                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                                                         Sent
+                                                     </span>
+                                                 ) : emailStatusMap[lead.id]?.status === 'failed' ? (
+                                                     <span
+                                                         title={emailStatusMap[lead.id]?.error || 'Email delivery failed'}
+                                                         className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-red-50 text-red-600 border-red-200 whitespace-nowrap cursor-help"
+                                                     >
+                                                         <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                                                         Failed ⓘ
+                                                     </span>
+                                                 ) : (
+                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-slate-50 text-slate-400 border-slate-200 whitespace-nowrap">
+                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
+                                                         Not Sent
+                                                     </span>
+                                                 )}
+                                             </td>
+                                             {/* Actions Dropdown */}
+                                             <td className="p-4 text-right">
+                                                 <div className="relative inline-block text-left">
+                                                     <button
+                                                         onClick={(e) => { e.stopPropagation(); setDropdownOpenId(dropdownOpenId === lead.id ? null : lead.id); }}
+                                                         className="p-2 text-slate-400 hover:bg-white hover:text-slate-700 rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all cursor-pointer"
+                                                     >
+                                                         <MoreVertical size={16} />
+                                                     </button>
+                                                     {dropdownOpenId === lead.id && (
+                                                         <div
+                                                             className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-100 z-40 overflow-hidden"
+                                                             onClick={(e) => e.stopPropagation()}
+                                                         >
+                                                             {/* Email options group */}
+                                                             <div className="px-2 pt-2 pb-1">
+                                                                 <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</p>
+                                                                 <button
+                                                                     onClick={() => { setSingleEmailLead(lead); setDropdownOpenId(null); }}
+                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors"
+                                                                 >
+                                                                     <Send size={14} />
+                                                                     Send Email (1:1)
+                                                                 </button>
+                                                                 <button
+                                                                     onClick={() => { setDropdownOpenId(null); setSelectedRows([lead.id]); setShowBulkEmail(true); }}
+                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors"
+                                                                 >
+                                                                     <Mail size={14} />
+                                                                     Add to Bulk Email
+                                                                 </button>
+                                                             </div>
+                                                             <div className="border-t border-slate-100 mx-2 my-1"></div>
+                                                             {/* Lead management group */}
+                                                             <div className="px-2 pb-2">
+                                                                 <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead</p>
+                                                                 <button
+                                                                     onClick={() => { setEditingLead(lead); setDropdownOpenId(null); }}
+                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                                                                 >
+                                                                     <Edit2 size={14} />
+                                                                     Edit Lead
+                                                                 </button>
+                                                                 <button
+                                                                     onClick={() => { handleDuplicateLead(lead); setDropdownOpenId(null); }}
+                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
+                                                                 >
+                                                                     <Copy size={14} />
+                                                                     Duplicate
+                                                                 </button>
+                                                                 <button
+                                                                     onClick={() => { handleDeleteLead(lead.id); setDropdownOpenId(null); }}
+                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                                 >
+                                                                     <Trash2 size={14} />
+                                                                     Delete
+                                                                 </button>
+                                                             </div>
+                                                         </div>
+                                                     )}
+                                                 </div>
+                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={6} className="p-8 text-center text-slate-500">
+                                        <td colSpan={7} className="p-8 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 {loading ? (
                                                     <Loader2 className="animate-spin text-[#1b57b1]" size={32} />
@@ -456,6 +545,55 @@ const LeadsList = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Click-outside overlay to close dropdown */}
+            {dropdownOpenId && (
+                <div className="fixed inset-0 z-30" onClick={() => setDropdownOpenId(null)} />
+            )}
+
+            {/* Bulk Email Modal (multiple leads) */}
+            {showBulkEmail && user && (
+                <BulkEmailModal
+                    leads={filteredLeads}
+                    selectedIds={selectedRows}
+                    senderName={user.full_name || ''}
+                    senderEmail={user.email || ''}
+                    userId={user.id}
+                    onClose={() => setShowBulkEmail(false)}
+                    onSuccess={(sent) => {
+                        setShowBulkEmail(false);
+                        setSelectedRows([]);
+                        fetchEmailLogs();
+                        addNotification({
+                            title: 'Bulk Email Sent',
+                            message: `Successfully sent emails to ${sent} lead${sent !== 1 ? 's' : ''}.`,
+                            type: 'success',
+                        });
+                    }}
+                />
+            )}
+
+            {/* Single Lead Email Modal (1:1) */}
+            {singleEmailLead && user && (
+                <BulkEmailModal
+                    leads={[singleEmailLead]}
+                    selectedIds={[singleEmailLead.id]}
+                    senderName={user.full_name || ''}
+                    senderEmail={user.email || ''}
+                    userId={user.id}
+                    onClose={() => setSingleEmailLead(null)}
+                    onSuccess={(sent) => {
+                        setSingleEmailLead(null);
+                        fetchEmailLogs();
+                        addNotification({
+                            title: 'Email Sent',
+                            message: `Email successfully sent to ${singleEmailLead.email}.`,
+                            type: 'success',
+                        });
+                        toast.success(`Email sent to ${singleEmailLead.email}`);
+                    }}
+                />
+            )}
 
             {/* Edit Lead Modal */}
             {editingLead && (

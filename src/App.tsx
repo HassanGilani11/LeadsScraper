@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
+import { Toaster } from 'sonner';
 import Dashboard from '@/pages/Dashboard';
 import Campaigns from '@/pages/Campaigns';
 import LeadScraper from '@/pages/LeadScraper';
@@ -203,96 +204,108 @@ const App = () => {
     }
 
     return (
-        <Routes>
-            <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
-            
-            <Route 
-                path="/auth" 
-                element={
-                    <PublicRoute>
-                        <Auth />
-                    </PublicRoute>
-                } 
-            />
+        <>
+            <Routes>
+                <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+                
+                <Route 
+                    path="/auth" 
+                    element={
+                        <PublicRoute>
+                            <Auth />
+                        </PublicRoute>
+                    } 
+                />
 
-            <Route 
-                path="/reset-password" 
-                element={
-                    <ProtectedRoute>
-                        <ResetPassword />
-                    </ProtectedRoute>
-                } 
-            />
-            
-            <Route 
-                path="/dashboard" 
-                element={
-                    <ProtectedRoute>
-                        <Dashboard />
-                    </ProtectedRoute>
-                } 
-            />
-            <Route 
-                path="/scraper" 
-                element={
-                    <ProtectedRoute>
-                        <LeadScraper />
-                    </ProtectedRoute>
-                } 
-            />
-            <Route 
-                path="/campaigns" 
-                element={
-                    <ProtectedRoute>
-                        <Campaigns />
-                    </ProtectedRoute>
-                } 
-            />
-            <Route 
-                path="/leads" 
-                element={
-                    <ProtectedRoute>
-                        <LeadsList />
-                    </ProtectedRoute>
-                } 
-            />
-            <Route 
-                path="/settings" 
-                element={
-                    <ProtectedRoute>
-                        <Settings />
-                    </ProtectedRoute>
-                } 
-            />
-            <Route 
-                path="/notifications" 
-                element={
-                    <ProtectedRoute>
-                        <Notifications />
-                    </ProtectedRoute>
-                } 
-            />
-            <Route 
-                path="/billing/success" 
-                element={
-                    <ProtectedRoute>
-                        <BillingSuccess />
-                    </ProtectedRoute>
-                } 
-            />
+                <Route 
+                    path="/reset-password" 
+                    element={
+                        <ProtectedRoute>
+                            <ResetPassword />
+                        </ProtectedRoute>
+                    } 
+                />
+                
+                <Route 
+                    path="/dashboard" 
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/scraper" 
+                    element={
+                        <ProtectedRoute>
+                            <LeadScraper />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/campaigns" 
+                    element={
+                        <ProtectedRoute>
+                            <Campaigns />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/leads" 
+                    element={
+                        <ProtectedRoute>
+                            <LeadsList />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/settings" 
+                    element={
+                        <ProtectedRoute>
+                            <Settings />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/notifications" 
+                    element={
+                        <ProtectedRoute>
+                            <Notifications />
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/billing/success" 
+                    element={
+                        <ProtectedRoute>
+                            <BillingSuccess />
+                        </ProtectedRoute>
+                    } 
+                />
 
-            {/* Admin Routes */}
-            <Route 
-                path="/admin/users" 
-                element={
-                    <ProtectedRoute>
-                        {user?.role === 'Admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />}
-                    </ProtectedRoute>
-                } 
+                {/* Admin Routes */}
+                <Route 
+                    path="/admin/users" 
+                    element={
+                        <ProtectedRoute>
+                            {user?.role === 'Admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />}
+                        </ProtectedRoute>
+                    } 
+                />
+                
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+            <Toaster
+                position="bottom-right"
+                expand={false}
+                richColors
+                closeButton
+                toastOptions={{
+                    style: { fontFamily: 'inherit', borderRadius: '12px', fontSize: '14px' },
+                    duration: 4000,
+                }}
             />
-            
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        </>
     );
 };
 

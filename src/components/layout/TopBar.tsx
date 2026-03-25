@@ -152,7 +152,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                                                 // searchQuery is already set, LeadsList will filter
                                             }}
                                         >
-                                            <span className="text-sm font-bold text-slate-700 truncate">{l.first_name || l.last_name ? `${l.first_name || ''} ${l.last_name || ''}` : 'Unnamed Lead'}</span>
+                                            <span className="text-sm font-bold text-slate-700 truncate">{l.first_name || l.last_name ? `${l.first_name || ''} ${l.last_name || ''}`.trim() : (l.company || l.email)}</span>
                                             <span className="text-[10px] text-slate-400 truncate">{l.email} • {l.company || 'Unknown Co'}</span>
                                         </div>
                                     ))}

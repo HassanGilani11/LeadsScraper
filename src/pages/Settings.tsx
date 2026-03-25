@@ -3,6 +3,7 @@ import AppContainer from '@/components/layout/AppContainer';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import { Settings as SettingsIcon, Shield, CreditCard, Bell, User, Key, LayoutGrid, Loader2, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
 
 const Settings = () => {
@@ -84,10 +85,9 @@ const Settings = () => {
             if (updateError) throw updateError;
 
             setUser({ ...user, avatar_url: publicUrl });
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3000);
+            toast.success('Avatar updated successfully');
         } catch (err: any) {
-            setError(err.message || 'Error uploading avatar');
+            toast.error(err.message || 'Error uploading avatar');
             console.error('Error uploading avatar:', err);
         } finally {
             setLoading(false);
@@ -119,10 +119,9 @@ const Settings = () => {
                 company: company,
                 avatar_url: avatarUrl
             });
-            setSaveSuccess(true);
-            setTimeout(() => setSaveSuccess(false), 3000);
+            toast.success('Profile updated successfully');
         } catch (err: any) {
-            setError(err.message || 'Error updating profile');
+            toast.error(err.message || 'Error updating profile');
             console.error('Error updating profile:', err);
         } finally {
             setLoading(false);
@@ -150,12 +149,11 @@ const Settings = () => {
 
             if (updateError) throw updateError;
 
-            setSaveSuccess(true);
             setNewPassword('');
             setConfirmPassword('');
-            setTimeout(() => setSaveSuccess(false), 3000);
+            toast.success('Password updated successfully');
         } catch (err: any) {
-            setError(err.message || 'Error updating password');
+            toast.error(err.message || 'Error updating password');
             console.error('Error updating password:', err);
         } finally {
             setLoading(false);

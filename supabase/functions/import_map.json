@@ -1,6 +1,7 @@
 {
   "imports": {
     "@google/generative-ai": "npm:@google/generative-ai@^0.24.1",
-    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.39.3"
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.39.3",
+    "resend": "npm:resend@^3.2.0"
   }
 }
