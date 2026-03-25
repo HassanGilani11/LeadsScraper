@@ -8,7 +8,7 @@
 -   🎯 **Campaign Management**: Organize leads into targeted campaigns with real-time status tracking.
 -   👨‍💻 **Admin User Management**: Complete admin control over users including Impersonation, Banning, and Invite creation.
 -   ⚖️ **Why Us Comparison Engine**: A dedicated, data-driven comparison section highlighting our 99.8% verification accuracy over traditional tools.
--   📊 **Interactive Dashboard**: Modern analytics overview with global search and notification systems.
+-   📊 **Interactive Dashboard**: Modern analytics overview with crypto-style data visualization, interactive tooltips, and real-time lead acquisition trends.
 -   💳 **Tiered Subscriptions**: Full Stripe integration supporting Pro ($19/mo) and Enterprise ($79/mo) plans.
 -   🔐 **Enterprise-Grade Security**: Secure authentication and custom profile management powered by Supabase.
 -   🔔 **Notification System**: Integrated alert system for extractions, billing, and system updates.
@@ -17,6 +17,7 @@
 
 -   **Frontend**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/)
 -   **Styling**: [Tailwind CSS 4.0](https://tailwindcss.com/) (using the new `@tailwindcss/vite` plugin)
+-   **Charts**: [Recharts](https://recharts.org/) (Interactive area, pie, and bar charts)
 -   **Backend & Auth**: [Supabase](https://supabase.com/) (Auth, PostgreSQL, Edge Functions)
 -   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
 -   **Icons**: [Lucide React](https://lucide.dev/)
@@ -69,10 +70,21 @@ supabase functions deploy stripe-webhook
 supabase functions deploy create-checkout-session
 supabase functions deploy verify-payment
 supabase functions deploy admin-create-user
+supabase functions deploy send-bulk-email
 
 # Set secrets
 supabase secrets set GEMINI_API_KEY=your_key
 supabase secrets set STRIPE_SECRET_KEY=your_key
+supabase secrets set STRIPE_WEBHOOK_SECRET=your_key
+supabase secrets set STRIPE_PRO_PRICE_ID=your_key
+supabase secrets set STRIPE_ENTERPRISE_PRICE_ID=your_key
+supabase secrets set APP_URL=your_app_url
+supabase secrets set RESEND_API_KEY=your_key
+supabase secrets set SMTP_HOST=your_host
+supabase secrets set SMTP_PORT=your_port
+supabase secrets set SMTP_USER=your_user
+supabase secrets set SMTP_PASS=your_pass
+supabase secrets set SMTP_FROM_NAME=your_name
 ```
 
 ## 📝 License

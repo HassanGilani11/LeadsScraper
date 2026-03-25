@@ -32,7 +32,7 @@ const Dashboard = () => {
     const [stats, setStats] = useState({
         totalLeads: 0,
         avgICP: 0,
-        industryDist: [] as { name: string, value: number, color: string }[],
+        industryDist: [] as { name: string, value: number, count: number, color: string }[],
         icpBreakdown: [] as { name: string, count: number, range: string }[],
         acquisitionTrends: [] as { date: string, count: number }[],
     });
@@ -370,9 +370,11 @@ const Dashboard = () => {
                                     barSize={40}
                                     animationDuration={1500}
                                     className="cursor-pointer"
-                                    onClick={(data) => {
-                                        const [min, max] = data.range.split('-');
-                                        navigate(`/leads?minScore=${min}&maxScore=${max}`);
+                                    onClick={(data: any) => {
+                                        if (data && data.range) {
+                                            const [min, max] = data.range.split('-');
+                                            navigate(`/leads?minScore=${min}&maxScore=${max}`);
+                                        }
                                     }}
                                 >
                                     {stats.icpBreakdown.map((entry, index) => (
