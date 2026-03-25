@@ -168,10 +168,10 @@ const LeadScraper = () => {
 
     return (
         <AppContainer title="Lead Scraper">
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 w-full mx-auto">
-                <div className="text-center mb-10">
-                    <h3 className="text-2xl font-bold text-slate-900 mb-2">Find Your Ideal Leads</h3>
-                    <p className="text-slate-500">Enter a website URL or use our discovery tool to find new prospects.</p>
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 md:p-8 w-full mx-auto">
+                <div className="text-center mb-6 md:mb-10">
+                    <h3 className="text-xl md:text-2xl font-bold text-slate-900 mb-2">Find Your Ideal Leads</h3>
+                    <p className="text-sm text-slate-500">Enter a website URL or keyword to find prospects.</p>
                 </div>
 
                 <div className="space-y-6">
@@ -183,7 +183,7 @@ const LeadScraper = () => {
                                 <select
                                     value={selectedCampaignId}
                                     onChange={(e) => setSelectedCampaignId(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-4 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all appearance-none cursor-pointer font-medium text-slate-700"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 md:py-4 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all appearance-none cursor-pointer font-medium text-slate-700"
                                 >
                                     <option value="">No Campaign (General)</option>
                                     {campaigns.map(camp => (
@@ -205,8 +205,8 @@ const LeadScraper = () => {
                                     value={url}
                                     onChange={(e) => setUrl(e.target.value)}
                                     onKeyDown={(e) => e.key === 'Enter' && handleScrape()}
-                                    placeholder="Enter domain (e.g., example.com) or search keyword"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-4 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all shadow-inner"
+                                    placeholder="Enter domain or keyword"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-12 pr-4 py-3 md:py-4 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all shadow-inner"
                                 />
                             </div>
                         </div>
@@ -238,43 +238,43 @@ const LeadScraper = () => {
                         </div>
                     )}
 
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                         <button 
                             onClick={handleScrape}
                             disabled={loading}
-                            className="flex-1 px-6 py-4 bg-[#1b57b1] text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-[#1b57b1]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
+                            className="flex-1 px-6 py-3.5 md:py-4 bg-[#1b57b1] text-white rounded-xl font-bold hover:opacity-90 transition-all shadow-lg shadow-[#1b57b1]/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <>
-                                    <Loader2 size={20} className="animate-spin" />
-                                    Analyzing Domain...
+                                    <Loader2 size={18} className="animate-spin" />
+                                    Analyzing...
                                 </>
                             ) : (
                                 <>
-                                    <Search size={20} />
+                                    <Search size={18} />
                                     Start Scraping
                                 </>
                             )}
                         </button>
-                        <button className="px-6 py-4 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center gap-2 cursor-pointer">
-                            <Filter size={20} />
-                            Advanced Filters
+                        <button className="px-6 py-3.5 md:py-4 border border-slate-200 rounded-xl font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer">
+                            <Filter size={18} />
+                            Advanced
                         </button>
                     </div>
                 </div>
 
-                <div className="mt-12 pt-10 border-t border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div className="mt-8 md:mt-12 pt-8 md:pt-10 border-t border-slate-100 grid grid-cols-2 md:grid-cols-3 gap-6 text-center">
                     <div>
-                        <p className="text-2xl font-bold text-slate-900">{stats.totalLeads.toLocaleString()}</p>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Leads Analyzed</p>
+                        <p className="text-xl md:text-2xl font-bold text-slate-900">{stats.totalLeads.toLocaleString()}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Leads Analyzed</p>
                     </div>
                     <div>
-                        <p className="text-2xl font-bold text-slate-900">{stats.avgMatch}%</p>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Avg Match Rate</p>
+                        <p className="text-xl md:text-2xl font-bold text-slate-900">{stats.avgMatch}%</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Match Rate</p>
                     </div>
-                    <div>
-                        <p className="text-2xl font-bold text-slate-900">{campaigns.length}</p>
-                        <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Active Campaigns</p>
+                    <div className="col-span-2 md:col-span-1">
+                        <p className="text-xl md:text-2xl font-bold text-slate-900">{campaigns.length}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Active Campaigns</p>
                     </div>
                 </div>
             </div>

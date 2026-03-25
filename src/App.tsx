@@ -20,8 +20,54 @@ import AuditLogs from '@/pages/admin/AuditLogs';
 import UsageAnalytics from '@/pages/admin/UsageAnalytics';
 
 const App = () => {
-    const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns } = useStore();
+    const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns, siteSettings, setSiteSettings } = useStore();
     const navigate = useNavigate();
+
+    // Fetch site settings exactly once on app load
+    useEffect(() => {
+        const fetchSiteSettings = async () => {
+            try {
+                const { data, error } = await supabase.from('site_settings').select('*').single();
+                if (data && !error) {
+                    setSiteSettings(data);
+                }
+            } catch (err) {
+                console.error('Error fetching site settings:', err);
+            }
+        };
+        fetchSiteSettings();
+    }, []);
+
+    // Apply site settings to the document head automatically
+    useEffect(() => {
+        if (siteSettings) {
+            document.title = siteSettings.meta_description 
+                ? `${siteSettings.site_title || 'Leads Scraper'} - ${siteSettings.meta_description}`
+                : (siteSettings.site_title || 'Leads Scraper');
+            
+            // Meta Description
+            let metaDesc = document.querySelector('meta[name="description"]');
+            if (metaDesc) {
+                metaDesc.setAttribute('content', siteSettings.meta_description || '');
+            } else if (siteSettings.meta_description) {
+                metaDesc = document.createElement('meta');
+                metaDesc.setAttribute('name', 'description');
+                metaDesc.setAttribute('content', siteSettings.meta_description);
+                document.head.appendChild(metaDesc);
+            }
+
+            // Favicon
+            if (siteSettings.favicon_url) {
+                let link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+                if (!link) {
+                    link = document.createElement('link') as HTMLLinkElement;
+                    link.rel = 'icon';
+                    document.head.appendChild(link);
+                }
+                link.href = siteSettings.favicon_url;
+            }
+        }
+    }, [siteSettings]);
 
     useEffect(() => {
         let initialFetchDone = false;

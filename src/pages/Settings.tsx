@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import AppContainer from '@/components/layout/AppContainer';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
-import { Settings as SettingsIcon, Shield, CreditCard, Bell, User, Key, LayoutGrid, Loader2, CheckCircle2 } from 'lucide-react';
+import { Settings as SettingsIcon, Shield, CreditCard, Bell, User, Key, LayoutGrid, Loader2, CheckCircle2, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
 import { logAuditAction } from '@/utils/auditLogger';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('profile');
-    const { user, setUser } = useStore();
+    const { user, setUser, siteSettings, setSiteSettings } = useStore();
     const [loading, setLoading] = useState(false);
     const [saveSuccess, setSaveSuccess] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -22,6 +22,12 @@ const Settings = () => {
     const [email, setEmail] = useState('');
     const [company, setCompany] = useState('');
     const [avatarUrl, setAvatarUrl] = useState('');
+
+    // Site Settings states
+    const [siteTitle, setSiteTitle] = useState('');
+    const [metaDescription, setMetaDescription] = useState('');
+    const [faviconUrl, setFaviconUrl] = useState('');
+    const faviconInputRef = React.useRef<HTMLInputElement>(null);
 
     // Security states
     const [newPassword, setNewPassword] = useState('');
@@ -39,6 +45,14 @@ const Settings = () => {
         }
     }, [user]);
 
+    React.useEffect(() => {
+        if (siteSettings) {
+            setSiteTitle(siteSettings.site_title || '');
+            setMetaDescription(siteSettings.meta_description || '');
+            setFaviconUrl(siteSettings.favicon_url || '');
+        }
+    }, [siteSettings]);
+
     const tabs = [
         { id: 'profile', label: 'Profile Information', icon: <User size={18} /> },
         { id: 'security', label: 'Security & Privacy', icon: <Shield size={18} /> },
@@ -46,6 +60,10 @@ const Settings = () => {
         { id: 'notifications', label: 'Email Notifications', icon: <Bell size={18} /> },
         { id: 'integrations', label: 'Integrations', icon: <LayoutGrid size={18} /> },
     ];
+
+    if (user?.role === 'Admin') {
+        tabs.push({ id: 'site', label: 'Site Settings', icon: <Globe size={18} /> });
+    }
 
     const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -97,6 +115,43 @@ const Settings = () => {
         } catch (err: any) {
             toast.error(err.message || 'Error uploading avatar');
             console.error('Error uploading avatar:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleFaviconUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !user) return;
+
+        // Validate file size (max 2MB)
+        if (file.size > 2 * 1024 * 1024) {
+            setError('File size must be less than 2MB');
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `favicon-${Date.now()}.${fileExt}`;
+
+            const { error: uploadError } = await supabase.storage
+                .from('Settings')
+                .upload(fileName, file, { upsert: true });
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage
+                .from('Settings')
+                .getPublicUrl(fileName);
+
+            setFaviconUrl(publicUrl);
+            toast.success('Favicon uploaded. Click save to apply changes.');
+        } catch (err: any) {
+            toast.error(err.message || 'Error uploading favicon');
+            console.error('Error uploading favicon:', err);
         } finally {
             setLoading(false);
         }
@@ -155,6 +210,50 @@ const Settings = () => {
         }
     };
 
+    const handleSaveSiteSettings = async () => {
+        setLoading(true);
+        setSaveSuccess(false);
+        setError(null);
+
+        try {
+            const { error: updateError } = await supabase
+                .from('site_settings')
+                .update({
+                    site_title: siteTitle,
+                    meta_description: metaDescription,
+                    favicon_url: faviconUrl
+                })
+                .eq('id', siteSettings?.id || 1);
+
+            if (updateError) throw updateError;
+
+            const newSettings = {
+                id: siteSettings?.id || '1',
+                site_title: siteTitle,
+                meta_description: metaDescription,
+                favicon_url: faviconUrl
+            };
+
+            setSiteSettings(newSettings);
+
+            await logAuditAction({
+                actionType: 'SETTING_UPDATED',
+                targetEntity: 'Global Site Settings',
+                beforeValue: { site_title: siteSettings?.site_title, favicon: siteSettings?.favicon_url },
+                afterValue: { site_title: siteTitle, favicon: faviconUrl },
+                note: `${user?.email} updated global site settings`
+            });
+
+            setSaveSuccess(true);
+            toast.success('Site settings updated successfully');
+        } catch (err: any) {
+            toast.error(err.message || 'Error updating site settings');
+            console.error('Error updating site settings:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handlePasswordUpdate = async () => {
         if (newPassword !== confirmPassword) {
             setError('Passwords do not match');
@@ -199,6 +298,8 @@ const Settings = () => {
             handleSaveProfile();
         } else if (activeTab === 'security') {
             handlePasswordUpdate();
+        } else if (activeTab === 'site') {
+            handleSaveSiteSettings();
         }
     };
 
@@ -417,6 +518,59 @@ const Settings = () => {
                                     <p className="text-sm text-slate-500 max-w-xs mt-1">We're currently building direct connections to Salesforce, HubSpot, and Slack.</p>
                                 </div>
                             )}
+                            {activeTab === 'site' && user?.role === 'Admin' && (
+                                <div className="space-y-6 max-w-2xl">
+                                    <div className="flex items-center gap-6 mb-8">
+                                        <div className="w-16 h-16 rounded-xl bg-slate-100 border border-slate-200 shadow-sm flex items-center justify-center overflow-hidden flex-shrink-0">
+                                            {faviconUrl ? (
+                                                <img src={faviconUrl} alt="Favicon" className="w-8 h-8 object-contain" />
+                                            ) : (
+                                                <Globe className="text-slate-400" size={24} />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <input 
+                                                type="file" 
+                                                ref={faviconInputRef} 
+                                                onChange={handleFaviconUpload} 
+                                                accept=".ico,.png,.jpg,.jpeg,.svg" 
+                                                className="hidden" 
+                                            />
+                                            <button 
+                                                onClick={() => faviconInputRef.current?.click()}
+                                                disabled={loading}
+                                                className="px-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-bold text-slate-700 hover:bg-slate-50 transition-all shadow-sm disabled:opacity-50"
+                                            >
+                                                {loading ? <Loader2 size={16} className="animate-spin" /> : 'Upload Favicon'}
+                                            </button>
+                                            <p className="text-xs text-slate-500 mt-2 font-medium">Use an ICO, PNG or SVG file. Ideal size: 32x32px or 64x64px.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Site Title</label>
+                                        <input 
+                                            type="text" 
+                                            value={siteTitle} 
+                                            onChange={(e) => setSiteTitle(e.target.value)}
+                                            placeholder="e.g. Leads Scraper - Admin Console"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm" 
+                                        />
+                                        <p className="text-xs text-slate-500 font-medium">This will be displayed in the browser tab and search engines.</p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-bold text-slate-700">Meta Description</label>
+                                        <textarea 
+                                            value={metaDescription} 
+                                            onChange={(e) => setMetaDescription(e.target.value)}
+                                            rows={3}
+                                            placeholder="AI Powered B2B Lead Generation"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm resize-none" 
+                                        />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -429,10 +583,10 @@ const Settings = () => {
                         {saveSuccess && (
                             <div className="flex items-center gap-2 text-green-600 font-bold text-sm animate-in fade-in slide-in-from-right-2">
                                 <CheckCircle2 size={18} />
-                                {activeTab === 'security' ? 'Password updated!' : 'Profile updated!'}
+                                {activeTab === 'security' ? 'Password updated!' : (activeTab === 'site' ? 'Settings updated!' : 'Profile updated!')}
                             </div>
                         )}
-                        {(activeTab === 'profile' || activeTab === 'security') && (
+                        {(activeTab === 'profile' || activeTab === 'security' || activeTab === 'site') && (
                             <>
                                 <button 
                                     disabled={loading}
@@ -441,9 +595,13 @@ const Settings = () => {
                                             setFirstName(user?.full_name?.split(' ')[0] || '');
                                             setLastName(user?.full_name?.split(' ').slice(1).join(' ') || '');
                                             setCompany('Stitch AI');
-                                        } else {
+                                        } else if (activeTab === 'security') {
                                             setNewPassword('');
                                             setConfirmPassword('');
+                                        } else if (activeTab === 'site') {
+                                            setSiteTitle(siteSettings?.site_title || '');
+                                            setMetaDescription(siteSettings?.meta_description || '');
+                                            setFaviconUrl(siteSettings?.favicon_url || '');
                                         }
                                         setError(null);
                                     }}

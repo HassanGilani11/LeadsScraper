@@ -16,8 +16,10 @@ import {
     Zap,
     UserCog,
     History,
-    BarChart3
+    BarChart3,
+    X
 } from 'lucide-react';
+
 
 const navItems = [
     { text: 'Dashboard', icon: <LayoutDashboard size={20} />, href: '/dashboard' },
@@ -36,7 +38,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const pathname = location.pathname;
-    const { user, setUser, setSession } = useStore();
+    const { user, setUser, setSession, siteSettings } = useStore();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     const handleLogout = async () => {
@@ -49,21 +51,45 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
     const creditPercentage = user ? Math.round((user.credits / user.max_credits) * 100) : 0;
 
     return (
+        <>
+            {/* Mobile overlay — rendered OUTSIDE and BEFORE sidebar */}
+            {open && (
+                <div
+                    className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-40 md:hidden cursor-pointer"
+                    onClick={onClose}
+                />
+            )}
+
         <aside className={`
-            fixed inset-y-0 left-0 z-50 w-64 bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out
-            md:relative md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}
+            fixed inset-y-0 left-0 z-50 w-4/5 max-w-xs bg-white border-r border-slate-200 flex flex-col transition-transform duration-300 ease-in-out shadow-2xl
+            md:relative md:w-64 md:shadow-none md:translate-x-0 ${open ? 'translate-x-0' : '-translate-x-full'}
         `}>
-            {/* Logo */}
-            <div className="p-6 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-[#1b57b1] flex items-center justify-center text-white">
-                    <Rocket size={24} />
+            {/* Logo and Close Button */}
+            <div className="p-6 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-[#1b57b1] flex items-center justify-center text-white overflow-hidden shrink-0">
+                        {siteSettings?.favicon_url ? (
+                            <img src={siteSettings.favicon_url} alt="Logo" className="w-full h-full object-cover" />
+                        ) : (
+                            <Rocket size={24} />
+                        )}
+                    </div>
+                    <div className="flex flex-col">
+                        <h1 className="text-sm font-bold leading-tight text-slate-900 truncate max-w-[140px]">
+                            {siteSettings?.site_title || 'Leads Scraper'}
+                        </h1>
+                        <span className="text-[10px] font-semibold bg-[#1b57b1]/10 text-[#1b57b1] px-1.5 py-0.5 rounded uppercase tracking-wider block w-fit">
+                            {user?.plan || 'Starter'} Plan
+                        </span>
+                    </div>
                 </div>
-                <div className="flex flex-col">
-                    <h1 className="text-sm font-bold leading-tight">Leads Scraper</h1>
-                    <span className="text-[10px] font-semibold bg-[#1b57b1]/10 text-[#1b57b1] px-1.5 py-0.5 rounded uppercase tracking-wider block w-fit">
-                        {user?.plan || 'Starter'} Plan
-                    </span>
-                </div>
+                {/* Close button for mobile */}
+                <button 
+                    onClick={onClose}
+                    className="md:hidden w-9 h-9 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer flex-shrink-0 border border-slate-200"
+                >
+                    <X size={18} />
+                </button>
             </div>
 
             {/* Navigation */}
@@ -189,14 +215,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                 </div>
             </div>
 
-            {/* Mobile overlay */}
-            {open && (
-                <div
-                    className="fixed inset-0 bg-black/20 z-[-1] md:hidden"
-                    onClick={onClose}
-                />
-            )}
+            {/* Mobile overlay — old location removed */}
         </aside>
+        </>
     );
 };
 

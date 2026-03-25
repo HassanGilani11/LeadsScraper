@@ -473,28 +473,42 @@ const LeadsList = () => {
                                     setCompanyFilter('all');
                                     setSourceFilter('all');
                                 }}
-                                className="flex-1 sm:flex-none px-4 py-2 border border-red-200 bg-red-50 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                                className="w-full sm:w-auto px-4 py-2.5 border border-red-200 bg-red-50 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                             >
                                 <X size={18} />
                                 Clear Filter
                             </button>
                         )}
-                        <div className="flex items-center gap-3 flex-1 sm:flex-none">
-                            <div className="relative group">
+                        <div className="grid grid-cols-2 xs:grid-cols-3 sm:flex items-center gap-2 md:gap-3 w-full sm:w-auto">
+                            <div className="relative group flex-1 sm:flex-none">
                                 <button 
                                     onClick={handleImportCSV}
-                                    className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm group whitespace-nowrap"
+                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
                                 >
-                                    <Upload size={18} className="group-hover:-translate-y-0.5 transition-transform" />
-                                    Import CSV
+                                    <Upload size={16} />
+                                    Import
                                 </button>
                                 <button 
                                     onClick={handleDownloadSampleCSV}
-                                    className="absolute -bottom-5 left-0 right-0 text-[10px] text-[#1b57b1] hover:text-[#154690] hover:underline font-bold text-center transition-all opacity-80 hover:opacity-100 whitespace-nowrap"
+                                    className="hidden sm:block absolute -bottom-5 left-0 right-0 text-[10px] text-[#1b57b1] hover:text-[#154690] hover:underline font-bold text-center transition-all opacity-80 hover:opacity-100 whitespace-nowrap"
                                 >
-                                    Download Sample Format
+                                    Sample
                                 </button>
                             </div>
+                            <button 
+                                onClick={handleExportCSV}
+                                className="flex-1 sm:flex-none px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
+                            >
+                                <Download size={16} />
+                                Export
+                            </button>
+                            <button 
+                                onClick={() => setShowBulkEmail(true)}
+                                className="col-span-2 xs:col-span-1 flex-1 sm:flex-none px-4 py-2.5 bg-[#1b57b1] text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer whitespace-nowrap"
+                            >
+                                <Mail size={16} />
+                                Email
+                            </button>
                             <input 
                                 type="file" 
                                 ref={fileInputRef} 
@@ -502,20 +516,6 @@ const LeadsList = () => {
                                 accept=".csv" 
                                 className="hidden" 
                             />
-                            <button 
-                                onClick={handleExportCSV}
-                                className="px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
-                            >
-                                <Download size={18} />
-                                Export CSV
-                            </button>
-                            <button 
-                                onClick={() => setShowBulkEmail(true)}
-                                className="px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer whitespace-nowrap"
-                            >
-                                <Mail size={18} />
-                                Bulk Email
-                            </button>
                         </div>
                     </div>
                 </div>
@@ -581,7 +581,7 @@ const LeadsList = () => {
                                 <select 
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[160px]"
+                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[140px] xs:min-w-[160px]"
                                 >
                                     <option value="newest">Sort by: Newest</option>
                                     <option value="oldest">Sort by: Oldest</option>

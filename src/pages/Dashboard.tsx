@@ -27,7 +27,7 @@ import {
 const Dashboard = () => {
     const navigate = useNavigate();
     const { user } = useStore();
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('30d');
     const [stats, setStats] = useState({
         totalLeads: 0,
@@ -167,7 +167,7 @@ const Dashboard = () => {
     return (
         <AppContainer title={`Welcome back, ${user?.full_name || 'Hassan'}`}>
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <KPICard
                     title="Total Leads Scraped"
                     value={stats.totalLeads.toLocaleString()}
@@ -193,25 +193,25 @@ const Dashboard = () => {
             </div>
 
             {/* Main Chart */}
-            <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
-                <div className="flex justify-between items-center mb-10">
+            <div className="bg-white p-4 md:p-8 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-10">
                     <div>
-                        <h4 className="text-xl font-bold text-slate-900">Lead Acquisition Trends</h4>
-                        <p className="text-sm text-slate-500">New leads identified per day over the selected period</p>
+                        <h4 className="text-lg md:text-xl font-bold text-slate-900">Lead Acquisition Trends</h4>
+                        <p className="text-xs md:text-sm text-slate-500">New leads identified per day</p>
                     </div>
-                    <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                    <div className="flex w-full sm:w-auto gap-1 bg-slate-100 p-1 rounded-xl">
                         {(['7d', '30d', '90d'] as const).map(range => (
                             <button 
                                 key={range}
                                 onClick={() => setDateRange(range)}
-                                className={`px-4 py-2 text-xs font-bold rounded-md transition-all ${dateRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                className={`flex-1 sm:flex-none px-3 md:px-4 py-2.5 md:py-2 text-xs font-bold rounded-lg transition-all ${dateRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700 font-semibold'}`}
                             >
-                                {range === '7d' ? '7 Days' : range === '30d' ? '30 Days' : '90 Days'}
+                                {range === '7d' ? '7D' : range === '30d' ? '30D' : '90D'}
                             </button>
                         ))}
                     </div>
                 </div>
-                <div className="h-80 w-full">
+                <div className="h-64 md:h-80 w-full">
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart
                             data={stats.acquisitionTrends}
@@ -259,11 +259,11 @@ const Dashboard = () => {
             {/* Secondary Charts Row */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pb-8">
                 {/* Industry Distribution */}
-                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
-                    <h4 className="text-xl font-bold mb-1 text-slate-900">Lead Distribution by Industry</h4>
-                    <p className="text-sm text-slate-500 mb-8">Breakdown of leads across top sectors</p>
-                    <div className="flex-1 flex flex-col md:flex-row items-center justify-around gap-8">
-                        <div className="relative w-48 h-48">
+                <div className="bg-white p-4 md:p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
+                    <h4 className="text-lg md:text-xl font-bold mb-1 text-slate-900">Lead Distribution by Industry</h4>
+                    <p className="text-xs md:text-sm text-slate-500 mb-6 md:mb-8">Breakdown of leads across top sectors</p>
+                    <div className="flex-1 flex flex-col md:flex-row items-center justify-around gap-6 md:gap-8">
+                        <div className="relative w-40 h-40 md:w-48 md:h-48">
                             <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
@@ -327,10 +327,10 @@ const Dashboard = () => {
                 </div>
 
                 {/* ICP Score Breakdown */}
-                <div className="bg-white p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
-                    <h4 className="text-xl font-bold mb-1 text-slate-900">ICP Score Breakdown</h4>
-                    <p className="text-sm text-slate-500 mb-8">Distribution of leads by ideal customer profile match</p>
-                    <div className="flex-1 h-48 w-full mt-4">
+                <div className="bg-white p-4 md:p-8 rounded-xl border border-slate-200 shadow-sm flex flex-col hover:shadow-md transition-all">
+                    <h4 className="text-lg md:text-xl font-bold mb-1 text-slate-900">ICP Score Breakdown</h4>
+                    <p className="text-xs md:text-sm text-slate-500 mb-6 md:mb-8">Distribution of leads by ICP match</p>
+                    <div className="flex-1 h-48 md:h-64 w-full mt-4">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart 
                                 data={stats.icpBreakdown}

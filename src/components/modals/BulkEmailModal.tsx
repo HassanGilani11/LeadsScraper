@@ -395,21 +395,21 @@ const BulkEmailModal: React.FC<BulkEmailModalProps> = ({
 
                 {/* ── Footer ── */}
                 {sendStatus !== 'done' && sendStatus !== 'error' && (
-                    <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex items-center justify-between gap-4 shrink-0">
-                        <p className="text-xs text-slate-400 font-medium">
+                    <div className="px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
+                        <p className="text-xs text-slate-400 font-medium hidden sm:block">
                             Sent from <span className="text-slate-600">connect@syntexdev.com</span> · Personalized per lead
                         </p>
-                        <div className="flex gap-3">
-                            <button onClick={onClose} className="px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all">Cancel</button>
+                        <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+                            <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all text-center">Cancel</button>
                             <button
                                 onClick={handleSend}
                                 disabled={!canSend || sendStatus === 'sending'}
-                                className="px-5 py-2.5 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="w-full sm:w-auto px-5 py-2.5 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                             >
                                 {sendStatus === 'sending' ? (
                                     <><Loader2 size={15} className="animate-spin" /> Sending...</>
                                 ) : (
-                                    <><Send size={15} /> Send to {recipients.length} Lead{recipients.length !== 1 ? 's' : ''}</>
+                                    <><Send size={15} /> Send to {recipients.length} {recipients.length !== 1 ? 'Leads' : 'Lead'}</>
                                 )}
                             </button>
                         </div>

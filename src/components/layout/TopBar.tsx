@@ -97,22 +97,24 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
 
     return (
         <header className="h-16 border-b border-slate-200 bg-white px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
                 <button
                     onClick={onMenuClick}
                     className="p-2 md:hidden text-slate-600 h-10 w-10 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
                 >
                     <Menu size={20} />
                 </button>
-                <h2 className="text-xl font-bold tracking-tight text-slate-900">{title || "Analytics Overview"}</h2>
+                <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 truncate max-w-[120px] xs:max-w-none">{title || "Analytics"}</h2>
             </div>
 
-            <div className="flex items-center gap-4">
-                <div className="relative w-40 md:w-64 hidden sm:block">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+            <div className="flex-1 flex items-center justify-end gap-2 md:gap-4 ml-2">
+                <div className="relative w-full max-w-[40px] xs:max-w-[140px] sm:max-w-xs md:max-w-md transition-all duration-300">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                        <Search size={16} />
+                    </div>
                     <input
-                        className="w-full bg-slate-100 border-none rounded-lg pl-9 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all"
-                        placeholder="Search leads, campaigns..."
+                        className="w-full bg-slate-100 border-none rounded-lg pl-9 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all placeholder:text-transparent xs:placeholder:text-slate-400"
+                        placeholder="Search..."
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}

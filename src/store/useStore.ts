@@ -50,9 +50,17 @@ export interface Notification {
     created_at: string;
 }
 
+export interface SiteSettings {
+    id: string;
+    site_title: string;
+    meta_description: string;
+    favicon_url: string | null;
+}
+
 interface AppState {
     session: Session | null;
     user: UserProfile | null;
+    siteSettings: SiteSettings | null;
     isLoading: boolean;
     campaigns: Campaign[];
     leads: Lead[];
@@ -60,6 +68,7 @@ interface AppState {
     notifications: Notification[];
     setSession: (session: Session | null) => void;
     setUser: (user: UserProfile | null) => void;
+    setSiteSettings: (settings: SiteSettings | null) => void;
     setCampaigns: (campaigns: Campaign[]) => void;
     setLeads: (leads: Lead[]) => void;
     setLoading: (loading: boolean) => void;
@@ -78,38 +87,16 @@ interface AppState {
 export const useStore = create<AppState>((set) => ({
     session: null,
     user: null,
-    isLoading: true,
+    siteSettings: null,
+    isLoading: false,
     campaigns: [],
     leads: [],
+
     searchQuery: '',
-    notifications: [
-        {
-            id: '1',
-            title: 'Welcome to Leads Scraper!',
-            message: 'You are currently on the Pro Plan. Start creating campaigns to scrape leads.',
-            type: 'success',
-            read: false,
-            created_at: new Date(Date.now() - 1000 * 60 * 5).toISOString() // 5 mins ago
-        },
-        {
-            id: '2',
-            title: 'Extraction Complete',
-            message: 'Your campaign "Tech Founders" has finished extracting 45 new leads.',
-            type: 'info',
-            read: false,
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString() // 2 hours ago
-        },
-        {
-            id: '3',
-            title: 'Billing Update',
-            message: 'Your plan has been successfully upgraded to Pro. You now have 100 monthly credits.',
-            type: 'success',
-            read: true,
-            created_at: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() // 1 day ago
-        }
-    ],
+    notifications: [],
     setSession: (session: Session | null) => set({ session }),
     setUser: (user: UserProfile | null) => set({ user }),
+    setSiteSettings: (siteSettings: SiteSettings | null) => set({ siteSettings }),
     setCampaigns: (campaigns: Campaign[]) => set({ campaigns }),
     setLeads: (leads: Lead[]) => set({ leads }),
     setLoading: (loading: boolean) => set({ isLoading: loading }),
