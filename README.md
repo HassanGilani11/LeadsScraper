@@ -6,7 +6,8 @@
 
 -   🤖 **AI-Driven Lead Extraction**: Leverages Google Gemini via Supabase Edge Functions for intelligent data parsing.
 -   🎯 **Campaign Management**: Organize leads into targeted campaigns with real-time status tracking.
--   👨‍💻 **Admin User Management**: Complete admin control over users including Impersonation, Banning, and Invite creation.
+-   👨‍💻 **Admin Master Control**: Complete admin control over users including Impersonation, Banning, and Invite creation.
+-   🛡️ **Admin Audit Logs**: Comprehensive historical tracking of all administrative actions (Plan changes, Campaigns, Settings) with an interactive timeline and detailed change diffs.
 -   ⚖️ **Why Us Comparison Engine**: A dedicated, data-driven comparison section highlighting our 99.8% verification accuracy over traditional tools.
 -   📊 **Interactive Dashboard**: Modern analytics overview with crypto-style data visualization, interactive tooltips, and real-time lead acquisition trends.
 -   💳 **Tiered Subscriptions**: Full Stripe integration supporting Pro ($19/mo) and Enterprise ($79/mo) plans.
@@ -85,6 +86,10 @@ supabase secrets set SMTP_PORT=your_port
 supabase secrets set SMTP_USER=your_user
 supabase secrets set SMTP_PASS=your_pass
 supabase secrets set SMTP_FROM_NAME=your_name
+
+# Database Migrations
+# Ensure you run the audit_logs migration for the dashboard to function
+supabase migration up 
 ```
 
 ## 📝 License
