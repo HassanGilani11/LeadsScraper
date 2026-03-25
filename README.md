@@ -4,6 +4,8 @@
 
 ## ✨ Core Features
 
+-   ⚙️ **Global Site Settings**: Real-time white-labeling and branding with dynamic Favicons, Site Titles, and automated SEO Meta Descriptions.
+-   📱 **Fully Responsive Layouts**: Pixel-perfect mobile optimizations featuring adaptive sidebars, fluid dashboard components, and accessible tap targets.
 -   🤖 **AI-Driven Lead Extraction**: Leverages Google Gemini via Supabase Edge Functions for intelligent data parsing.
 -   🎯 **Campaign Management**: Organize leads into targeted campaigns with real-time status tracking.
 -   👨‍💻 **Admin Master Control**: Complete admin control over users including Impersonation, Banning, and Invite creation.
