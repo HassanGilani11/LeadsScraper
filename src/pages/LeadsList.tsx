@@ -15,7 +15,8 @@ const LeadsList = () => {
     const industryFilter = searchParams.get('industry');
     const minScore = searchParams.get('minScore');
     const maxScore = searchParams.get('maxScore');
-    const { user, leads, setLeads, addLead, searchQuery, setSearchQuery, addNotification } = useStore();
+    const { user, leads, setLeads, addLead, addNotification } = useStore();
+    const [searchTerm, setSearchTerm] = useState('');
     const [campaignName, setCampaignName] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -43,7 +44,7 @@ const LeadsList = () => {
     useEffect(() => {
         const queryParam = searchParams.get('q');
         if (queryParam) {
-            setSearchQuery(queryParam);
+            setSearchTerm(queryParam);
         }
     }, [searchParams]);
 
@@ -131,16 +132,17 @@ const LeadsList = () => {
 
         if (itemsToExport.length === 0) return;
         
-        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Date Created', 'Industry', 'ICP Score'];
+        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created'];
         const rows = itemsToExport.map(lead => [
             lead.first_name || '',
             lead.last_name || '',
             lead.email,
             lead.company || '',
             lead.status || 'new',
-            lead.created_at || '',
             lead.industry || '',
-            lead.icp_score || '0'
+            lead.icp_score || '0',
+            lead.source || 'scraper',
+            lead.created_at || ''
         ]);
         
         // Add BOM for Excel compatibility
@@ -283,8 +285,8 @@ const LeadsList = () => {
     };
 
     const handleDownloadSampleCSV = () => {
-        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source'];
-        const sampleData = ['John', 'Doe', 'john.doe@example.com', 'Example Corp', 'New', 'Technology', '85', 'csv'];
+        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created'];
+        const sampleData = ['John', 'Doe', 'john.doe@example.com', 'Example Corp', 'New', 'Technology', '85', 'csv', new Date().toISOString().split('T')[0]];
         
         const csvContent = '\uFEFF' + [
             headers.join(','),
@@ -410,8 +412,8 @@ const LeadsList = () => {
 
     const filteredLeads = leads
         .filter(lead => {
-            const text = `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''}`.toLowerCase();
-            const matchesSearch = text.includes(searchQuery.toLowerCase());
+            const text = `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''} ${lead.industry || ''}`.toLowerCase();
+            const matchesSearch = text.includes(searchTerm.toLowerCase());
             const matchesCompany = companyFilter === 'all' || lead.company === companyFilter;
             const matchesSource = sourceFilter === 'all' || (lead.source || 'scraper') === sourceFilter;
             return matchesSearch && matchesCompany && matchesSource;
@@ -528,8 +530,8 @@ const LeadsList = () => {
                             <input
                                 type="text"
                                 placeholder="Search leads by name, email, or company..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
                                 className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm"
                             />
                         </div>
@@ -609,6 +611,7 @@ const LeadsList = () => {
                                     </th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
+                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Industry</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
                                      <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
@@ -647,7 +650,8 @@ const LeadsList = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-sm font-medium text-slate-700">{lead.company}</td>
+                                            <td className="p-4 text-sm font-medium text-slate-700">{lead.company || '-'}</td>
+                                            <td className="p-4 text-sm font-medium text-slate-500">{lead.industry || '-'}</td>
                                             <td className="p-4">
                                                 {getStatusBadge(lead.status)}
                                             </td>
@@ -860,6 +864,7 @@ const LeadsList = () => {
                                 first_name: formData.get('first_name') as string,
                                 last_name: formData.get('last_name') as string,
                                 company: formData.get('company') as string,
+                                industry: formData.get('industry') as string,
                                 source: formData.get('source') as string,
                             });
                         }} className="p-6 space-y-4">
@@ -883,14 +888,25 @@ const LeadsList = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Company</label>
-                                <input 
-                                    name="company" 
-                                    defaultValue={editingLead.company || ''} 
-                                    placeholder="Enter company name"
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all"
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Company</label>
+                                    <input 
+                                        name="company" 
+                                        defaultValue={editingLead.company || ''} 
+                                        placeholder="Enter company name"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Industry</label>
+                                    <input 
+                                        name="industry" 
+                                        defaultValue={editingLead.industry || ''} 
+                                        placeholder="e.g. Technology, Healthcare"
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all"
+                                    />
+                                </div>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Lead Source</label>

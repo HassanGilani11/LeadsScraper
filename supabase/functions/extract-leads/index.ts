@@ -62,17 +62,15 @@ Deno.serve(async (req: Request) => {
     const prompt = `
       You are an expert lead extraction assistant.
       Your goal is to find all professional contacts, decision-makers, and relevant leads from the provided text content.
-      Extract their first name, last name, email address, company name, and industry if available.
       
-      For each lead, calculate an "icp_score" from 1 to 10:
-      - 10: High-level decision maker (CEO, Founder, VP) in a relevant industry.
-      - 7-9: Mid-management or specialized role in a relevant industry.
-      - 4-6: Individual contributor or general contact in a relevant industry.
-      - 1-3: Generic contact or low relevance role/industry.
+      Follow these strict rules for extraction:
+      1. EMAIL: Extract every valid email address found.
+      2. NAME: If you cannot find a specific person's name, do NOT leave it blank and do NOT use literal strings like "NULL" or "EMPTY". Instead, derive a friendly placeholder from the email prefix (e.g., for "support@company.com", set First Name: "Support", Last Name: "Team"). For "john.doe@company.com" where the name isn't explicit in text, infer First: "John", Last: "Doe". 
+      3. COMPANY: Determine the company name from the website content or domain. Apply this company name to all extracted leads if they belong to it.
+      4. INDUSTRY: You MUST determine the exact industry or sector (e.g., B2B SaaS, IT Services, Healthcare, Real Estate) based on the website content. Provide your best intelligent guess. Do NOT use "Unknown", "NULL", or leave it blank. Apply this industry to ALL extracted leads.
+      5. ICP SCORE: Calculate an "icp_score" from 1 to 10 based on relevance (10: Executive/Decision Maker, 7-9: Mid-management, 4-6: Contributor, 1-3: Generic contact).
       
       Only include entries that have at least an email address.
-      
-      Important: If you cannot find a specific person's name, leave first_name and last_name blank. Do NOT put the company name or generic titles into the first_name or last_name fields.
       
       Content to analyze:
       ${contentToAnalyze}
@@ -84,19 +82,38 @@ Deno.serve(async (req: Request) => {
     const leads = JSON.parse(jsonString);
 
     if (leads && leads.length > 0) {
-      const leadsToInsert = leads.map((lead: any) => ({
-        campaign_id: campaignId || null,
-        user_id: userId,
-        email: lead.email,
-        first_name: lead.first_name || null,
-        last_name: lead.last_name || null,
-        company: lead.company || null,
-        industry: lead.industry || 'Other',
-        icp_score: lead.icp_score || 0,
-        source_url: url || null,
-        status: 'new',
-        source: 'scraper'
-      }));
+      const sanitizeField = (val: any) => {
+        if (!val || typeof val !== 'string') return null;
+        const lower = val.trim().toLowerCase();
+        if (lower === 'null' || lower === 'empty' || lower === 'unknown') return null;
+        return val.trim();
+      };
+      
+      const getFallbackName = (email: string, isLastName: boolean) => {
+        const prefix = email.split('@')[0];
+        if (isLastName) return 'Team';
+        return prefix.charAt(0).toUpperCase() + prefix.slice(1);
+      };
+
+      const leadsToInsert = leads.map((lead: any) => {
+        const email = lead.email || '';
+        const fName = sanitizeField(lead.first_name);
+        const lName = sanitizeField(lead.last_name);
+        
+        return {
+          campaign_id: campaignId || null,
+          user_id: userId,
+          email: email,
+          first_name: fName || getFallbackName(email, false),
+          last_name: lName || getFallbackName(email, true),
+          company: sanitizeField(lead.company) || 'Unknown Company',
+          industry: sanitizeField(lead.industry) || 'Technology', // Fallback to a common industry if all else fails
+          icp_score: lead.icp_score || 1,
+          source_url: url || null,
+          status: 'new',
+          source: 'scraper'
+        };
+      });
 
       const { data, error } = await supabase
         .from('leads')
@@ -107,11 +124,12 @@ Deno.serve(async (req: Request) => {
         console.error('Supabase Error:', error);
         return new Response(
           JSON.stringify({ 
+            success: false,
             error: 'Failed to save leads to database.', 
             details: error,
             leads: leads 
           }), 
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
@@ -132,9 +150,17 @@ Deno.serve(async (req: Request) => {
 
   } catch (error: any) {
     console.error('Extraction Error:', error);
+    
+    let userFriendlyError = 'An unexpected error occurred during extraction.';
+    if (error.message?.includes('503') || error.message?.includes('high demand') || error.message?.includes('overloaded')) {
+      userFriendlyError = 'The AI service is currently experiencing high demand. Please try again in a few minutes.';
+    } else if (error.message) {
+      userFriendlyError = error.message;
+    }
+
     return new Response(
-      JSON.stringify({ error: 'Internal Server Error', message: error.message }), 
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({ success: false, error: userFriendlyError, message: error.message }), 
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
 });
