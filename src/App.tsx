@@ -16,6 +16,7 @@ import BillingSuccess from '@/pages/BillingSuccess';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import PublicRoute from '@/components/auth/PublicRoute';
 import UserManagement from '@/pages/admin/UserManagement';
+import AuditLogs from '@/pages/admin/AuditLogs';
 
 const App = () => {
     const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns } = useStore();
@@ -289,6 +290,14 @@ const App = () => {
                     element={
                         <ProtectedRoute>
                             {user?.role === 'Admin' ? <UserManagement /> : <Navigate to="/dashboard" replace />}
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/audit-logs" 
+                    element={
+                        <ProtectedRoute>
+                            {user?.role === 'Admin' ? <AuditLogs /> : <Navigate to="/dashboard" replace />}
                         </ProtectedRoute>
                     } 
                 />

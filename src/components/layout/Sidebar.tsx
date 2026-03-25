@@ -14,7 +14,8 @@ import {
     HelpCircle,
     LogOut,
     Zap,
-    UserCog
+    UserCog,
+    History
 } from 'lucide-react';
 
 const navItems = [
@@ -100,6 +101,18 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                         >
                             <UserCog size={20} />
                             <span>User Management</span>
+                        </Link>
+                        <Link
+                            to="/admin/audit-logs"
+                            className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer mt-1
+                                ${pathname === '/admin/audit-logs'
+                                    ? 'bg-[#1b57b1]/10 text-[#1b57b1]'
+                                    : 'text-slate-600 hover:bg-slate-100'}
+                            `}
+                        >
+                            <History size={20} />
+                            <span>Audit Logs</span>
                         </Link>
                     </div>
                 )}

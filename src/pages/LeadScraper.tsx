@@ -6,6 +6,7 @@ import { useStore } from '@/store/useStore';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
+import { logAuditAction } from '@/utils/auditLogger';
 
 const LeadScraper = () => {
     const [url, setUrl] = useState('');
@@ -134,6 +135,23 @@ const LeadScraper = () => {
                             });
                         }
                     }
+
+                    await logAuditAction({
+                        actionType: 'DATA_EXTRACTION_SUCCESS',
+                        targetEntity: url,
+                        beforeValue: {},
+                        afterValue: { 
+                            leadsCount: data.leads.length,
+                            url,
+                            campaignId: selectedCampaignId
+                        },
+                        note: `Successfully extracted ${data.leads.length} leads from ${url}`,
+                        metadata: { 
+                            url,
+                            leadsCount: data.leads.length,
+                            campaignId: selectedCampaignId
+                        }
+                    });
                 }
             } else {
                 setError(data?.error || 'Failed to extract leads.');

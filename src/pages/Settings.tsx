@@ -5,6 +5,7 @@ import { useStore } from '@/store/useStore';
 import { Settings as SettingsIcon, Shield, CreditCard, Bell, User, Key, LayoutGrid, Loader2, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
+import { logAuditAction } from '@/utils/auditLogger';
 
 const Settings = () => {
     const [activeTab, setActiveTab] = useState('profile');
@@ -85,6 +86,13 @@ const Settings = () => {
             if (updateError) throw updateError;
 
             setUser({ ...user, avatar_url: publicUrl });
+            await logAuditAction({
+                actionType: 'AVATAR_UPDATED',
+                targetEntity: user.email,
+                beforeValue: { avatar_url: user.avatar_url },
+                afterValue: { avatar_url: publicUrl },
+                note: 'User updated their profile avatar'
+            });
             toast.success('Avatar updated successfully');
         } catch (err: any) {
             toast.error(err.message || 'Error uploading avatar');
@@ -113,12 +121,31 @@ const Settings = () => {
 
             if (updateError) throw updateError;
 
+            const oldProfile = {
+                full_name: user.full_name,
+                company: user.company,
+                avatar_url: user.avatar_url
+            };
+
             setUser({
                 ...user,
                 full_name: fullName,
                 company: company,
                 avatar_url: avatarUrl
             });
+
+            await logAuditAction({
+                actionType: 'PROFILE_UPDATED',
+                targetEntity: user.email,
+                beforeValue: oldProfile,
+                afterValue: {
+                    full_name: fullName,
+                    company: company,
+                    avatar_url: avatarUrl
+                },
+                note: 'User updated their profile information'
+            });
+
             toast.success('Profile updated successfully');
         } catch (err: any) {
             toast.error(err.message || 'Error updating profile');
@@ -151,6 +178,13 @@ const Settings = () => {
 
             setNewPassword('');
             setConfirmPassword('');
+            await logAuditAction({
+                actionType: 'PASSWORD_UPDATED',
+                targetEntity: user?.email,
+                beforeValue: { password: '●●●●●●' },
+                afterValue: { password: '●●●●●● (Updated)' },
+                note: 'User manually updated their account password'
+            });
             toast.success('Password updated successfully');
         } catch (err: any) {
             toast.error(err.message || 'Error updating password');

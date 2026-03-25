@@ -18,6 +18,7 @@ import {
     Circle
 } from 'lucide-react';
 import CreateCampaignModal from '@/components/modals/CreateCampaignModal';
+import { logAuditAction } from '@/utils/auditLogger';
 
 const Campaigns = () => {
     const { campaigns, setCampaigns, addCampaign, user, searchQuery, setSearchQuery } = useStore();
@@ -91,6 +92,17 @@ const Campaigns = () => {
             if (error) throw error;
             if (data) {
                 addCampaign(data);
+                await logAuditAction({
+                    actionType: 'CAMPAIGN_DUPLICATED',
+                    targetEntity: data.name,
+                    beforeValue: {},
+                    afterValue: { name: data.name, status: data.status },
+                    note: `Campaign duplicated from ${campaign.name}`,
+                    metadata: { 
+                        campaignId: data.id, 
+                        sourceCampaignId: campaign.id 
+                    }
+                });
             }
         } catch (err) {
             console.error('Error duplicating campaign:', err);
@@ -137,6 +149,16 @@ const Campaigns = () => {
             setCampaigns(campaigns.map(c => 
                 c.id === id ? { ...c, status: nextStatus } : c
             ));
+
+            const campaign = campaigns.find(c => c.id === id);
+            await logAuditAction({
+                actionType: 'CAMPAIGN_STATUS_CHANGED',
+                targetEntity: campaign?.name,
+                beforeValue: { status: currentStatus },
+                afterValue: { status: nextStatus },
+                note: `Campaign status changed to ${nextStatus}`,
+                metadata: { campaignId: id }
+            });
         } catch (err) {
             console.error('Error toggling campaign status:', err);
         }
@@ -153,7 +175,17 @@ const Campaigns = () => {
             
             if (error) throw error;
 
+            const campaign = campaigns.find(c => c.id === id);
             setCampaigns(campaigns.filter(c => c.id !== id));
+
+            await logAuditAction({
+                actionType: 'CAMPAIGN_DELETED',
+                targetEntity: campaign?.name,
+                beforeValue: { name: campaign?.name, status: campaign?.status },
+                afterValue: {},
+                note: `Campaign ${campaign?.name} deleted`,
+                metadata: { campaignId: id }
+            });
         } catch (err) {
             console.error('Error deleting campaign:', err);
         }

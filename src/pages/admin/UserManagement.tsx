@@ -19,6 +19,7 @@ import {
 import AppContainer from '@/components/layout/AppContainer';
 import { useStore } from '@/store/useStore';
 import { supabase } from '@/lib/supabase';
+import { logAuditAction } from '@/utils/auditLogger';
 
 const UserManagement = () => {
     const { user: currentUser, addNotification } = useStore();
@@ -181,6 +182,15 @@ const UserManagement = () => {
 
             if (error) throw error;
 
+            // Log Audit Action
+            await logAuditAction({
+                actionType: newStatus === 'Banned' ? 'USER_BANNED' : 'USER_UNBANNED',
+                targetEntity: user.email,
+                beforeValue: { status: user.status, ban_reason: user.ban_reason },
+                afterValue: { status: newStatus, ban_reason: newStatus === 'Banned' ? reason : null },
+                note: reason || `User ${newStatus === 'Banned' ? 'suspended' : 're-activated'} by admin.`
+            });
+
             setUsers(users.map(u => u.id === user.id ? { 
                 ...u, 
                 status: newStatus,
@@ -220,6 +230,13 @@ const UserManagement = () => {
 
             if (error || data?.error) throw error || new Error(data.error);
 
+            // Log Audit Action
+            await logAuditAction({
+                actionType: 'PASSWORD_RESET_TRIGGERED',
+                targetEntity: user.email,
+                note: `Admin triggered password reset link for ${user.full_name}.`
+            });
+
             addNotification({ 
                 title: 'Success', 
                 message: `Password reset link triggered for ${user.full_name}`, 
@@ -232,7 +249,6 @@ const UserManagement = () => {
             setActiveDropdown(null);
         }
     };
-
     const handleDeleteUser = async (user: any) => {
         if (!confirm(`Are you sure you want to delete ${user.full_name}? This cannot be undone.`)) return;
 
@@ -247,6 +263,14 @@ const UserManagement = () => {
 
             if (error || data?.error) throw error || new Error(data.error);
 
+            // Log Audit Action
+            await logAuditAction({
+                actionType: 'USER_DELETED',
+                targetEntity: user.email,
+                beforeValue: { id: user.id, email: user.email, full_name: user.full_name },
+                note: 'User account permanently deleted by admin.'
+            });
+
             addNotification({ title: 'Success', message: 'User deleted successfully', type: 'success' });
             fetchUsers();
         } catch (err: any) {
@@ -254,6 +278,35 @@ const UserManagement = () => {
         } finally {
             setLoading(false);
             setActiveDropdown(null);
+        }
+    };
+
+    const handlePlanChange = async (user: any, newPlan: string) => {
+        try {
+            setLoading(true);
+            const { error } = await supabase
+                .from('profiles')
+                .update({ plan: newPlan })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            // Log Audit Action
+            await logAuditAction({
+                actionType: 'PLAN_CHANGED',
+                targetEntity: user.email,
+                beforeValue: { plan: user.plan },
+                afterValue: { plan: newPlan },
+                note: `Admin changed user plan from ${user.plan} to ${newPlan}.`
+            });
+
+            setUsers(users.map(u => u.id === user.id ? { ...u, plan: newPlan } : u));
+            setSelectedUser({ ...selectedUser, plan: newPlan });
+            addNotification({ title: 'Success', message: `Plan updated to ${newPlan}`, type: 'success' });
+        } catch (err: any) {
+            addNotification({ title: 'Error', message: 'Failed to update plan', type: 'error' });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -284,13 +337,21 @@ const UserManagement = () => {
         }
     };
 
-    const confirmImpersonate = () => {
+    const confirmImpersonate = async () => {
         // In a real app, this would swap the session or token
         addNotification({ 
             title: 'Impersonation Started', 
             message: `You are now viewing the dashboard as ${selectedUser?.full_name}`, 
             type: 'info' 
         });
+
+        // Log Audit Action
+        await logAuditAction({
+            actionType: 'IMPERSONATION_START',
+            targetEntity: selectedUser?.email,
+            note: `Admin started impersonation session for ${selectedUser?.full_name}.`
+        });
+
         setIsImpersonateModalOpen(false);
     };
 
@@ -307,6 +368,13 @@ const UserManagement = () => {
                 .in('id', selectedRows);
 
             if (error) throw error;
+
+            // Log Audit Action
+            await logAuditAction({
+                actionType: 'USER_BANNED',
+                targetEntity: `${selectedRows.length} users (Bulk Action)`,
+                note: `Bulk ban of ${selectedRows.length} users initiated by admin.`
+            });
 
             addNotification({ title: 'Success', message: `${selectedRows.length} users banned`, type: 'success' });
             setSelectedRows([]);
@@ -762,6 +830,19 @@ const UserManagement = () => {
                                     throw new Error(data.error);
                                 }
 
+                                // Log Audit Action
+                                await logAuditAction({
+                                    actionType: 'USER_INVITED',
+                                    targetEntity: inviteData.email,
+                                    afterValue: {
+                                        email: inviteData.email,
+                                        fullName: inviteData.fullName,
+                                        plan: inviteData.plan,
+                                        status: inviteData.status
+                                    },
+                                    note: `Admin invited new user ${inviteData.fullName} with ${inviteData.plan} plan.`
+                                });
+
                                 addNotification({ title: 'Success', message: 'User profile created successfully', type: 'success' });
                                 setIsInviteModalOpen(false);
                                 setInviteData({ fullName: '', email: '', plan: 'Starter', status: 'Active' });
@@ -874,6 +955,18 @@ const UserManagement = () => {
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs text-slate-500">Account Role</span>
                                             <span className="text-xs font-bold text-slate-900">{selectedUser?.role || 'Member'}</span>
+                                        </div>
+                                        <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Plan</span>
+                                            <select 
+                                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1b57b1]/10"
+                                                value={selectedUser?.plan}
+                                                onChange={(e) => handlePlanChange(selectedUser, e.target.value)}
+                                            >
+                                                <option value="Starter">Starter</option>
+                                                <option value="Pro">Pro</option>
+                                                <option value="Enterprise">Enterprise</option>
+                                            </select>
                                         </div>
                                     </div>
                                 </div>

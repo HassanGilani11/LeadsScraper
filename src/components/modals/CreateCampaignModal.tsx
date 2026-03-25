@@ -16,6 +16,7 @@ import {
     Loader2,
     Save
 } from 'lucide-react';
+import { logAuditAction } from '@/utils/auditLogger';
 
 interface CreateCampaignModalProps {
     open: boolean;
@@ -78,6 +79,26 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({ open, onClose
                         leads: campaign.leads, // Keep existing lead count
                         tags: data.target_keywords || []
                     });
+
+                    await logAuditAction({
+                        actionType: 'CAMPAIGN_UPDATED',
+                        targetEntity: data.name,
+                        beforeValue: {
+                            name: campaign.name,
+                            description: campaign.description,
+                            status: campaign.status,
+                            tags: campaign.tags
+                        },
+                        afterValue: {
+                            name: data.name,
+                            description: data.description,
+                            status: data.status,
+                            tags: data.target_keywords
+                        },
+                        note: `Campaign ${data.name} updated`,
+                        metadata: { campaignId: data.id }
+                    });
+
                     onClose();
                 }
             } else {
@@ -96,6 +117,21 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({ open, onClose
                         leads: 0,
                         tags: data.target_keywords || []
                     });
+
+                    await logAuditAction({
+                        actionType: 'CAMPAIGN_CREATED',
+                        targetEntity: data.name,
+                        beforeValue: {},
+                        afterValue: {
+                            name: data.name,
+                            description: data.description,
+                            status: data.status,
+                            tags: data.target_keywords
+                        },
+                        note: `New campaign ${data.name} created`,
+                        metadata: { campaignId: data.id }
+                    });
+
                     onClose();
                 }
             }
