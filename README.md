@@ -4,26 +4,24 @@
 
 ## ✨ Core Features
 
+-   📊 **Revenue Metrics Dashboard**: High-fidelity administrative tracking for MRR, Churn rates, and Subscription lifecycle events with automated growth projections.
+-   🛡️ **Data Quality Monitoring**: Live lead hygiene monitoring dashboard featuring enrichment hit rates (Job Title, LinkedIn, Phone, etc.) and deep duplication trend analysis.
+-   📈 **Usage Analytics**: Real-time tracking of platform activity, daily active users, credit consumption patterns, and plan distribution.
 -   ⚙️ **Global Site Settings**: Real-time white-labeling and branding with dynamic Favicons, Site Titles, and automated SEO Meta Descriptions.
--   📱 **Fully Responsive Layouts**: Pixel-perfect mobile optimizations featuring adaptive sidebars, fluid dashboard components, and accessible tap targets.
--   🤖 **AI-Driven Lead Extraction**: Leverages Google Gemini via Supabase Edge Functions for intelligent data parsing.
--   🎯 **Campaign Management**: Organize leads into targeted campaigns with real-time status tracking.
--   👨‍💻 **Admin Master Control**: Complete admin control over users including Impersonation, Banning, and Invite creation.
--   🛡️ **Admin Audit Logs**: Comprehensive historical tracking of all administrative actions (Plan changes, Campaigns, Settings) with an interactive timeline and detailed change diffs.
--   ⚖️ **Why Us Comparison Engine**: A dedicated, data-driven comparison section highlighting our 99.8% verification accuracy over traditional tools.
--   📊 **Interactive Dashboard**: Modern analytics overview with crypto-style data visualization, interactive tooltips, and real-time lead acquisition trends.
--   💳 **Tiered Subscriptions**: Full Stripe integration supporting Pro ($19/mo) and Enterprise ($79/mo) plans.
--   🔐 **Enterprise-Grade Security**: Secure authentication and custom profile management powered by Supabase.
--   🔔 **Notification System**: Integrated alert system for extractions, billing, and system updates.
+-   🤖 **AI-Powered Lead extraction [v2]**: Leverages Gemini 2.5 Flash for deep enrichment, capturing Job Titles, Phone numbers, LinkedIn profiles, and Company sizes with intelligent fallback logic.
+-   🛡️ **Admin Audit Logs**: Comprehensive historical tracking of all administrative actions with interactive timeline and detailed change diffs.
+-   🎯 **Campaign Management**: Organize leads into targeted campaigns with automated scoring and status tracking.
+-   💳 **Tiered Subscriptions**: Secure Stripe integration supporting Starter, Pro, and Enterprise tiers.
+-   📱 **Fully Responsive Layouts**: Pixel-perfect mobile optimizations with adaptive sidebars and fluid dashboard components.
 
 ## 🛠️ Tech Stack
 
 -   **Frontend**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/)
--   **Styling**: [Tailwind CSS 4.0](https://tailwindcss.com/) (using the new `@tailwindcss/vite` plugin)
--   **Charts**: [Recharts](https://recharts.org/) (Interactive area, pie, and bar charts)
+-   **Styling**: [Tailwind CSS 4.0](https://tailwindcss.com/)
+-   **Charts**: [Recharts](https://recharts.org/) & [Chart.js](https://www.chartjs.org/) (High-performance line, donut, and bar visualizations)
 -   **Backend & Auth**: [Supabase](https://supabase.com/) (Auth, PostgreSQL, Edge Functions)
 -   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
--   **Icons**: [Lucide React](https://lucide.dev/)
+-   **AI Engine**: [Google Gemini 2.5 Flash](https://ai.google.dev/)
 -   **Payments**: [Stripe](https://stripe.com/)
 
 ## 🚀 Getting Started
