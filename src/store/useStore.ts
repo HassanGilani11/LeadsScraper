@@ -45,6 +45,28 @@ export interface Lead {
     company_website?: string;
     company_size?: string;
     location?: string;
+    facebook_url?: string;
+    twitter_url?: string;
+    instagram_url?: string;
+    youtube_url?: string;
+    pinterest_url?: string;
+    snapchat?: string;
+    whatsapp?: string;
+    tiktok?: string;
+    telegram?: string;
+    skype?: string;
+    contact_page_url?: string;
+    about_page_url?: string;
+    logo_url?: string;
+    business_description?: string;
+    founded_year?: string;
+    technographics?: string[];
+    meta_title?: string;
+    meta_description?: string;
+    primary_keywords?: string[];
+    website_language?: string;
+    career_page_url?: string;
+    open_positions_count?: number;
 }
 
 export interface Notification {

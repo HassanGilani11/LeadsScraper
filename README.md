@@ -1,27 +1,27 @@
-# Leads Scraper 🚀
+# Lead Intelligence Platform 🚀
+> **Professional Lead Extraction, Technographic Detection & Sales Automation**
 
-**Leads Scraper** is a high-performance AI-powered platform designed for strategic lead extraction, automated scoring, and campaign management. Built for growth, it combines modern web technologies with advanced AI to streamline the sales pipeline.
+**Lead Intelligence Platform** (formerly Leads Scraper) is a high-performance enterprise-grade solution designed for strategic data extraction, automated enrichment, and AI-driven growth. Built for the modern sales pipeline, it combines deep business intelligence with high-end motion design.
 
 ## ✨ Core Features
 
 -   📊 **Revenue Metrics Dashboard**: High-fidelity administrative tracking for MRR, Churn rates, and Subscription lifecycle events with automated growth projections.
 -   🛡️ **Data Quality Monitoring**: Live lead hygiene monitoring dashboard featuring enrichment hit rates (Job Title, LinkedIn, Phone, etc.) and deep duplication trend analysis.
--   📈 **Usage Analytics**: Real-time tracking of platform activity, daily active users, credit consumption patterns, and plan distribution.
--   ⚙️ **Global Site Settings**: Real-time white-labeling and branding with dynamic Favicons, Site Titles, and automated SEO Meta Descriptions.
--   🤖 **AI-Powered Lead extraction [v2]**: Leverages Gemini 2.5 Flash for deep enrichment, capturing Job Titles, Phone numbers, LinkedIn profiles, and Company sizes with intelligent fallback logic.
--   🛡️ **Admin Audit Logs**: Comprehensive historical tracking of all administrative actions with interactive timeline and detailed change diffs.
--   🎯 **Campaign Management**: Organize leads into targeted campaigns with automated scoring and status tracking.
--   💳 **Tiered Subscriptions**: Secure Stripe integration supporting Starter, Pro, and Enterprise tiers.
--   📱 **Fully Responsive Layouts**: Pixel-perfect mobile optimizations with adaptive sidebars and fluid dashboard components.
+-   ✨ **Premium Motion UI**: Integrated **Framer Motion** for a high-end, responsive experience featuring scroll-triggered reveals and staggered entry animations.
+-   🤖 **Advanced Extraction Engine [v3]**: High-performance technographic detection (40+ signatures including Next.js, Shopify, WordPress) and deep SEO metadata extraction.
+-   📊 **Smart Leads Management**: High-performance interactive table featuring **Sticky Columns**, fluid horizontal scrolling, and a comprehensive details view for **25+ Data Points**.
+-   📧 **Bulk Email & Personalization**: Integrated rich-text editor (Tiptap) with automated **Merge Tags** and real-time delivery tracking via SMTP.
+-   🏷️ **Social Discovery**: Automated discovery of LinkedIn, Twitter, Facebook, and Instagram profiles for every extracted lead.
+-   🛠️ **Professional UI Architecture**: Standardized stacking context with **z-[9999] layer isolation** for all modals, ensuring a flicker-free, overlap-proof administrative experience.
 
 ## 🛠️ Tech Stack
 
 -   **Frontend**: [React 19](https://react.dev/), [Vite](https://vitejs.dev/), [TypeScript](https://www.typescriptlang.org/)
+-   **Animations**: [Framer Motion](https://www.framer.com/motion/)
 -   **Styling**: [Tailwind CSS 4.0](https://tailwindcss.com/)
--   **Charts**: [Recharts](https://recharts.org/) & [Chart.js](https://www.chartjs.org/) (High-performance line, donut, and bar visualizations)
+-   **Charts**: [Recharts](https://recharts.org/) (High-performance visualizations)
 -   **Backend & Auth**: [Supabase](https://supabase.com/) (Auth, PostgreSQL, Edge Functions)
--   **State Management**: [Zustand](https://github.com/pmndrs/zustand)
--   **AI Engine**: [Google Gemini 2.5 Flash](https://ai.google.dev/)
+-   **AI Engine**: Proprietary [Advanced Extraction Engines]
 -   **Payments**: [Stripe](https://stripe.com/)
 
 ## 🚀 Getting Started

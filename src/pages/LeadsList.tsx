@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppContainer from '@/components/layout/AppContainer';
-import { Users, Mail, Download, Upload, FileText, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send, Database } from 'lucide-react';
+import { Users, Mail, Download, Upload, FileText, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send, Database, Globe, Eye } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore, Lead } from '@/store/useStore';
 import { toast } from 'sonner';
@@ -25,12 +25,14 @@ const LeadsList = () => {
     const [showBulkEmail, setShowBulkEmail] = useState(false);
     const [singleEmailLead, setSingleEmailLead] = useState<Lead | null>(null);
     const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
+    const [viewingLead, setViewingLead] = useState<Lead | null>(null);
     const [emailStatusMap, setEmailStatusMap] = useState<Record<string, { status: 'sent' | 'failed'; error?: string }>>({});
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [leadsToAssign, setLeadsToAssign] = useState<Lead[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [companyFilter, setCompanyFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
+    const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (user) {
@@ -47,6 +49,24 @@ const LeadsList = () => {
             setSearchTerm(queryParam);
         }
     }, [searchParams]);
+
+    // Click away listener for dropdowns
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent | TouchEvent) => {
+            const target = event.target as Node;
+            const isToggleButton = (target as HTMLElement).closest('.dropdown-toggle');
+            
+            if (dropdownOpenId && dropdownRef.current && !dropdownRef.current.contains(target) && !isToggleButton) {
+                setDropdownOpenId(null);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('touchstart', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('touchstart', handleClickOutside);
+        };
+    }, [dropdownOpenId]);
 
     const fetchCampaignName = async () => {
         const { data } = await supabase
@@ -132,7 +152,12 @@ const LeadsList = () => {
 
         if (itemsToExport.length === 0) return;
         
-        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created'];
+        const headers = [
+            'First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created',
+            'Phone', 'Website', 'LinkedIn', 'Facebook', 'Twitter', 'Instagram', 'YouTube', 'Pinterest', 'Snapchat', 
+            'WhatsApp', 'TikTok', 'Telegram', 'Skype', 'Contact Page', 'About Page',
+            'Logo URL', 'Description', 'Founded Year', 'Technographics', 'Meta Title', 'Meta Description', 'Keywords', 'Language', 'Career Page', 'Open Positions'
+        ];
         const rows = itemsToExport.map(lead => [
             lead.first_name || '',
             lead.last_name || '',
@@ -142,7 +167,32 @@ const LeadsList = () => {
             lead.industry || '',
             lead.icp_score || '0',
             lead.source || 'scraper',
-            lead.created_at || ''
+            lead.created_at || '',
+            lead.phone || '',
+            lead.company_website || '',
+            lead.linkedin_url || '',
+            lead.facebook_url || '',
+            lead.twitter_url || '',
+            lead.instagram_url || '',
+            lead.youtube_url || '',
+            lead.pinterest_url || '',
+            lead.snapchat || '',
+            lead.whatsapp || '',
+            lead.tiktok || '',
+            lead.telegram || '',
+            lead.skype || '',
+            lead.contact_page_url || '',
+            lead.about_page_url || '',
+            lead.logo_url || '',
+            lead.business_description || '',
+            lead.founded_year || '',
+            (lead.technographics || []).join('; '),
+            lead.meta_title || '',
+            lead.meta_description || '',
+            (lead.primary_keywords || []).join('; '),
+            lead.website_language || '',
+            lead.career_page_url || '',
+            lead.open_positions_count || 0
         ]);
         
         // Add BOM for Excel compatibility
@@ -225,6 +275,31 @@ const LeadsList = () => {
             const statusIndex = headers.findIndex(h => h.includes('status'));
             const industryIndex = headers.findIndex(h => h.includes('industry'));
             const icpScoreIndex = headers.findIndex(h => h.includes('icp score'));
+            const phoneIndex = headers.findIndex(h => h.includes('phone'));
+            const websiteIndex = headers.findIndex(h => h.includes('website'));
+            const linkedinIndex = headers.findIndex(h => h.includes('linkedin'));
+            const facebookIndex = headers.findIndex(h => h.includes('facebook'));
+            const twitterIndex = headers.findIndex(h => h.includes('twitter'));
+            const instagramIndex = headers.findIndex(h => h.includes('instagram'));
+            const youtubeIndex = headers.findIndex(h => h.includes('youtube'));
+            const pinterestIndex = headers.findIndex(h => h.includes('pinterest'));
+            const snapchatIndex = headers.findIndex(h => h.includes('snapchat'));
+            const whatsappIndex = headers.findIndex(h => h.includes('whatsapp'));
+            const tiktokIndex = headers.findIndex(h => h.includes('tiktok'));
+            const telegramIndex = headers.findIndex(h => h.includes('telegram'));
+            const skypeIndex = headers.findIndex(h => h.includes('skype'));
+            const contactPageIndex = headers.findIndex(h => h.includes('contact page'));
+            const aboutPageIndex = headers.findIndex(h => h.includes('about page'));
+            const logoIndex = headers.findIndex(h => h.includes('logo'));
+            const descIndex = headers.findIndex(h => h.includes('description'));
+            const foundedIndex = headers.findIndex(h => h.includes('founded'));
+            const techIndex = headers.findIndex(h => h.includes('technographics'));
+            const metaTitleIndex = headers.findIndex(h => h.includes('meta title'));
+            const metaDescIndex = headers.findIndex(h => h.includes('meta description'));
+            const keywordsIndex = headers.findIndex(h => h.includes('keywords'));
+            const langIndex = headers.findIndex(h => h.includes('language'));
+            const careerIndex = headers.findIndex(h => h.includes('career page'));
+            const jobsIndex = headers.findIndex(h => h.includes('open positions'));
 
             const newLeads = [];
             for (let i = 1; i < lines.length; i++) {
@@ -244,6 +319,31 @@ const LeadsList = () => {
                         status: statusIndex !== -1 ? (values[statusIndex]?.toLowerCase() || 'new') : 'new',
                         industry: industryIndex !== -1 ? (values[industryIndex] || null) : null,
                         icp_score: icpScoreIndex !== -1 ? parseInt(values[icpScoreIndex]) || 0 : 0,
+                        phone: phoneIndex !== -1 ? (values[phoneIndex] || null) : null,
+                        company_website: websiteIndex !== -1 ? (values[websiteIndex] || null) : null,
+                        linkedin_url: linkedinIndex !== -1 ? (values[linkedinIndex] || null) : null,
+                        facebook_url: facebookIndex !== -1 ? (values[facebookIndex] || null) : null,
+                        twitter_url: twitterIndex !== -1 ? (values[twitterIndex] || null) : null,
+                        instagram_url: instagramIndex !== -1 ? (values[instagramIndex] || null) : null,
+                        youtube_url: youtubeIndex !== -1 ? (values[youtubeIndex] || null) : null,
+                        pinterest_url: pinterestIndex !== -1 ? (values[pinterestIndex] || null) : null,
+                        snapchat: snapchatIndex !== -1 ? (values[snapchatIndex] || null) : null,
+                        whatsapp: whatsappIndex !== -1 ? (values[whatsappIndex] || null) : null,
+                        tiktok: tiktokIndex !== -1 ? (values[tiktokIndex] || null) : null,
+                        telegram: telegramIndex !== -1 ? (values[telegramIndex] || null) : null,
+                        skype: skypeIndex !== -1 ? (values[skypeIndex] || null) : null,
+                        contact_page_url: contactPageIndex !== -1 ? (values[contactPageIndex] || null) : null,
+                        about_page_url: aboutPageIndex !== -1 ? (values[aboutPageIndex] || null) : null,
+                        logo_url: logoIndex !== -1 ? (values[logoIndex] || null) : null,
+                        business_description: descIndex !== -1 ? (values[descIndex] || null) : null,
+                        founded_year: foundedIndex !== -1 ? (values[foundedIndex] || null) : null,
+                        technographics: techIndex !== -1 ? (values[techIndex] ? values[techIndex].split(';').map(s => s.trim()) : []) : [],
+                        meta_title: metaTitleIndex !== -1 ? (values[metaTitleIndex] || null) : null,
+                        meta_description: metaDescIndex !== -1 ? (values[metaDescIndex] || null) : null,
+                        primary_keywords: keywordsIndex !== -1 ? (values[keywordsIndex] ? values[keywordsIndex].split(';').map(s => s.trim()) : []) : [],
+                        website_language: langIndex !== -1 ? (values[langIndex] || null) : null,
+                        career_page_url: careerIndex !== -1 ? (values[careerIndex] || null) : null,
+                        open_positions_count: jobsIndex !== -1 ? parseInt(values[jobsIndex]) || 0 : 0,
                         campaign_id: campaignId || null,
                         source: 'csv'
                     });
@@ -596,11 +696,11 @@ const LeadsList = () => {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse min-w-[800px]">
+                    <div className="overflow-x-auto pb-4">
+                        <table className="w-full min-w-[1300px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50/80">
-                                    <th className="p-4 w-12 text-center">
+                                    <th className="p-4 w-12 text-center sticky left-0 z-[110] bg-slate-50/80 backdrop-blur-sm shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                                         <button onClick={toggleAll} className="text-slate-400 hover:text-[#1b57b1] transition-colors focus:outline-none">
                                             {selectedRows.length === leads.length && leads.length > 0 ? (
                                                 <CheckCircle2 size={20} className="text-[#1b57b1] fill-[#1b57b1]/10" />
@@ -609,14 +709,17 @@ const LeadsList = () => {
                                             )}
                                         </button>
                                     </th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Name</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Industry</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Email Sent</th>
-                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right">Actions</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest sticky left-12 z-[110] bg-slate-50/80 backdrop-blur-sm shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Name</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Industry</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">ICP</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Tech Stack</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Founded</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Email Sent</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right sticky right-0 z-[110] bg-slate-50/80 backdrop-blur-sm shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -624,10 +727,10 @@ const LeadsList = () => {
                                     filteredLeads.map((lead, index) => (
                                         <tr 
                                             key={lead.id} 
-                                            className={`border-b border-slate-50 hover:bg-slate-50/80 transition-colors group ${index === filteredLeads.length - 1 ? 'border-none' : ''} ${selectedRows.includes(lead.id) ? 'bg-blue-50/30' : ''}`}
+                                            className={`border-b border-slate-50 hover:bg-slate-50/80 transition-colors group ${index === filteredLeads.length - 1 ? 'border-none' : ''} ${selectedRows.includes(lead.id) ? 'bg-blue-50/30' : ''} ${dropdownOpenId === lead.id ? 'z-[101] relative' : ''}`}
                                         >
-                                            <td className="p-4 text-center">
-                                                <button onClick={() => toggleRow(lead.id)} className="text-slate-300 group-hover:text-slate-400 hover:!text-[#1b57b1] transition-colors focus:outline-none">
+                                            <td className="p-4 text-center sticky left-0 z-[100] bg-white group-hover:bg-slate-50 transition-colors shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                                                <button onClick={(e) => { e.stopPropagation(); toggleRow(lead.id); }} className="text-slate-300 group-hover:text-slate-400 hover:!text-[#1b57b1] transition-colors focus:outline-none">
                                                     {selectedRows.includes(lead.id) ? (
                                                         <CheckCircle2 size={20} className="text-[#1b57b1] fill-[#1b57b1]/10" />
                                                     ) : (
@@ -635,7 +738,7 @@ const LeadsList = () => {
                                                     )}
                                                 </button>
                                             </td>
-                                            <td className="p-4">
+                                            <td className="p-4 sticky left-12 z-[100] bg-white group-hover:bg-slate-50 transition-colors shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 uppercase">
                                                         {(lead.first_name?.[0] || lead.last_name?.[0] || lead.company?.[0] || lead.email[0])}
@@ -647,125 +750,218 @@ const LeadsList = () => {
                                                                 : (lead.company || lead.email)}
                                                         </p>
                                                         <p className="text-xs text-slate-500">{lead.email}</p>
+                                                        <div className="flex items-center gap-1.5 mt-1.5 relative z-10">
+                                                            {lead.company_website && (
+                                                                <a 
+                                                                    href={lead.company_website} 
+                                                                    target="_blank" 
+                                                                    rel="noopener" 
+                                                                    className="p-1 text-slate-400 hover:text-[#1b57b1] hover:bg-white rounded transition-all shadow-sm border border-transparent hover:border-slate-100" 
+                                                                    title="Visit Website"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <Globe size={14} />
+                                                                </a>
+                                                            )}
+                                                            {lead.linkedin_url && (
+                                                                <a 
+                                                                    href={lead.linkedin_url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener" 
+                                                                    className="p-1 text-slate-400 hover:text-[#0077b5] hover:bg-white rounded transition-all shadow-sm border border-transparent hover:border-slate-100" 
+                                                                    title="LinkedIn Profile"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                                                                </a>
+                                                            )}
+                                                            {lead.twitter_url && (
+                                                                <a 
+                                                                    href={lead.twitter_url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener" 
+                                                                    className="p-1 text-slate-400 hover:text-[#1da1f2] hover:bg-white rounded transition-all shadow-sm border border-transparent hover:border-slate-100" 
+                                                                    title="Twitter/X Profile"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                                                                </a>
+                                                            )}
+                                                            {lead.facebook_url && (
+                                                                <a href={lead.facebook_url} target="_blank" rel="noopener noreferrer" title="Facebook" className="p-1 text-slate-400 hover:text-[#1877f2] hover:bg-white rounded transition-all shadow-sm border border-transparent hover:border-slate-100" onClick={(e) => e.stopPropagation()}>
+                                                                    <svg className="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="p-4 text-sm font-medium text-slate-700">{lead.company || '-'}</td>
-                                            <td className="p-4 text-sm font-medium text-slate-500">{lead.industry || '-'}</td>
+                                            <td className="p-4 text-sm font-medium text-slate-700 max-w-[150px] truncate">{lead.company || '-'}</td>
+                                            <td className="p-4">
+                                                <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider truncate inline-block max-w-[120px]">
+                                                    {lead.industry || 'General'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold ${
+                                                    Number(lead.icp_score) >= 7 ? 'bg-green-50 text-green-700 border border-green-100' :
+                                                    Number(lead.icp_score) >= 4 ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                                    'bg-slate-50 text-slate-500 border border-slate-100'
+                                                }`}>
+                                                    {lead.icp_score || 0}%
+                                                </span>
+                                            </td>
+                                            <td className="p-4">
+                                                <div className="max-w-[180px] flex flex-wrap gap-1">
+                                                    {lead.technographics && lead.technographics.length > 0 ? (
+                                                        lead.technographics.slice(0, 2).map((tech, idx) => (
+                                                            <span key={idx} className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-medium border border-indigo-100">
+                                                                {tech}
+                                                            </span>
+                                                        ))
+                                                    ) : (
+                                                        <span className="text-slate-300 italic text-[10px]">None</span>
+                                                    )}
+                                                    {lead.technographics && lead.technographics.length > 2 && (
+                                                        <span className="text-[9px] text-slate-400">+{lead.technographics.length - 2}</span>
+                                                    )}
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-sm text-slate-500 font-medium">
+                                                {lead.founded_year || '—'}
+                                            </td>
                                             <td className="p-4">
                                                 {getStatusBadge(lead.status)}
                                             </td>
-                                             <td className="p-4 text-sm text-slate-500 font-medium whitespace-nowrap">{lead.created_at}</td>
-                                             {/* Source Column */}
-                                             <td className="p-4">
-                                                 {lead.source === 'csv' ? (
-                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-100 whitespace-nowrap">
-                                                         <FileText size={12} />
-                                                         CSV Import
-                                                     </span>
-                                                 ) : (
-                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-purple-50 text-purple-700 border-purple-100 whitespace-nowrap">
-                                                         <Database size={12} />
-                                                         Lead Scraper
-                                                     </span>
-                                                 )}
-                                             </td>
-                                             {/* Email Status Column */}
-                                             <td className="p-4">
-                                                 {emailStatusMap[lead.id]?.status === 'sent' ? (
-                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-green-50 text-green-700 border-green-200 whitespace-nowrap">
-                                                         <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
-                                                         Sent
-                                                     </span>
-                                                 ) : emailStatusMap[lead.id]?.status === 'failed' ? (
-                                                     <span
-                                                         title={emailStatusMap[lead.id]?.error || 'Email delivery failed'}
-                                                         className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-red-50 text-red-600 border-red-200 whitespace-nowrap cursor-help"
-                                                     >
-                                                         <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
-                                                         Failed ⓘ
-                                                     </span>
-                                                 ) : (
-                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-slate-50 text-slate-400 border-slate-200 whitespace-nowrap">
-                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
-                                                         Not Sent
-                                                     </span>
-                                                 )}
-                                             </td>
-                                             {/* Actions Dropdown */}
-                                             <td className="p-4 text-right">
-                                                 <div className="relative inline-block text-left">
-                                                     <button
-                                                         onClick={(e) => { e.stopPropagation(); setDropdownOpenId(dropdownOpenId === lead.id ? null : lead.id); }}
-                                                         className="p-2 text-slate-400 hover:bg-white hover:text-slate-700 rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all cursor-pointer"
-                                                     >
-                                                         <MoreVertical size={16} />
-                                                     </button>
-                                                     {dropdownOpenId === lead.id && (
-                                                         <div
-                                                             className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-xl border border-slate-100 z-40 overflow-hidden"
-                                                             onClick={(e) => e.stopPropagation()}
-                                                         >
-                                                             {/* Email options group */}
-                                                             <div className="px-2 pt-2 pb-1">
-                                                                 <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Email</p>
-                                                                 <button
-                                                                     onClick={() => { setSingleEmailLead(lead); setDropdownOpenId(null); }}
-                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors"
-                                                                 >
-                                                                     <Send size={14} />
-                                                                     Send Email (1:1)
-                                                                 </button>
-                                                                 <button
-                                                                     onClick={() => { setDropdownOpenId(null); setSelectedRows([lead.id]); setShowBulkEmail(true); }}
-                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors"
-                                                                 >
-                                                                     <Mail size={14} />
-                                                                     Add to Bulk Email
-                                                                 </button>
-                                                             </div>
-                                                             <div className="border-t border-slate-100 mx-2 my-1"></div>
-                                                             {/* Lead management group */}
-                                                             <div className="px-2 pb-2">
-                                                                 <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Lead</p>
-                                                                 <button
-                                                                      onClick={() => { setEditingLead(lead); setDropdownOpenId(null); }}
-                                                                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                                                                  >
-                                                                      <Edit2 size={14} />
-                                                                      Edit Lead
-                                                                  </button>
-                                                                  <button
-                                                                      onClick={() => { setLeadsToAssign([lead]); setShowAssignModal(true); setDropdownOpenId(null); }}
-                                                                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                                                                  >
-                                                                      <Target size={14} />
-                                                                      Assign to Campaign
-                                                                  </button>
-                                                                  <button
-                                                                      onClick={() => { handleDuplicateLead(lead); setDropdownOpenId(null); }}
-                                                                      className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg transition-colors"
-                                                                  >
-                                                                     <Copy size={14} />
-                                                                     Duplicate
-                                                                 </button>
-                                                                 <button
-                                                                     onClick={() => { handleDeleteLead(lead.id); setDropdownOpenId(null); }}
-                                                                     className="w-full text-left flex items-center gap-2.5 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                                                                 >
-                                                                     <Trash2 size={14} />
-                                                                     Delete
-                                                                 </button>
-                                                             </div>
-                                                         </div>
-                                                     )}
-                                                 </div>
-                                             </td>
+                                            <td className="p-4 text-sm text-slate-500 font-medium whitespace-nowrap">{lead.created_at}</td>
+                                            <td className="p-4">
+                                                {lead.source === 'csv' ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-blue-50 text-blue-700 border-blue-100 whitespace-nowrap">
+                                                        <FileText size={12} />
+                                                        CSV Import
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-purple-50 text-purple-700 border-purple-100 whitespace-nowrap">
+                                                        <Database size={12} />
+                                                        Lead Scraper
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                {emailStatusMap[lead.id]?.status === 'sent' ? (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-green-50 text-green-700 border-green-200 whitespace-nowrap">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+                                                        Sent
+                                                    </span>
+                                                ) : emailStatusMap[lead.id]?.status === 'failed' ? (
+                                                    <span
+                                                        title={emailStatusMap[lead.id]?.error || 'Email delivery failed'}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-red-50 text-red-600 border-red-200 whitespace-nowrap cursor-help"
+                                                    >
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 inline-block"></span>
+                                                        Failed ⓘ
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border bg-slate-50 text-slate-400 border-slate-200 whitespace-nowrap">
+                                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
+                                                        Not Sent
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className={`p-4 text-right sticky right-0 bg-white group-hover:bg-slate-50 transition-all shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] ${dropdownOpenId === lead.id ? 'z-[101]' : 'z-[100]'}`}>
+                                                <div className="relative inline-block text-left">
+                                                    <button
+                                                        onClick={() => setDropdownOpenId(dropdownOpenId === lead.id ? null : lead.id)}
+                                                        className="dropdown-toggle p-2 text-slate-400 hover:bg-white hover:text-slate-700 rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all cursor-pointer relative z-10"
+                                                    >
+                                                        <MoreVertical size={16} />
+                                                    </button>
+                                                    {dropdownOpenId === lead.id && (
+                                                        <div
+                                                            ref={dropdownRef}
+                                                            className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-2xl border border-slate-100 z-[102] overflow-hidden"
+                                                        >
+                                                            {/* Email options group */}
+                                                            <div className="px-2 pt-2 pb-1">
+                                                                <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Options</p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setViewingLead(lead); setDropdownOpenId(null); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Eye size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    View Details
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setSingleEmailLead(lead); setDropdownOpenId(null); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Send size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    Send Email (1:1)
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setDropdownOpenId(null); setSelectedRows([lead.id]); setShowBulkEmail(true); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Mail size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    Add to Bulk Email
+                                                                </button>
+                                                            </div>
+
+                                                            {/* Lead management group */}
+                                                            <div className="px-2 py-1 border-t border-slate-50">
+                                                                <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Lead</p>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setEditingLead(lead); setDropdownOpenId(null); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Edit2 size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    Edit Lead
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { setLeadsToAssign([lead]); setShowAssignModal(true); setDropdownOpenId(null); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Target size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    Assign to Campaign
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={async () => {
+                                                                        const { data, error } = await supabase.from('leads').insert([{ ...lead, id: undefined, created_at: undefined }]).select().single();
+                                                                        if (data) {
+                                                                            addLead(data);
+                                                                            toast.success('Lead duplicated successfully');
+                                                                        }
+                                                                        setDropdownOpenId(null);
+                                                                    }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Copy size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    Duplicate
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { handleDeleteLead(lead.id); setDropdownOpenId(null); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <Trash2 size={16} className="text-red-400 group-hover/item:text-red-600" />
+                                                                    Delete
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={7} className="p-8 text-center text-slate-500">
+                                        <td colSpan={11} className="p-8 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 {loading ? (
                                                     <Loader2 className="animate-spin text-[#1b57b1]" size={32} />
@@ -797,11 +993,6 @@ const LeadsList = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Click-outside overlay to close dropdown */}
-            {dropdownOpenId && (
-                <div className="fixed inset-0 z-30" onClick={() => setDropdownOpenId(null)} />
-            )}
 
             {/* Bulk Email Modal (multiple leads) */}
             {showBulkEmail && user && (
@@ -849,8 +1040,8 @@ const LeadsList = () => {
 
             {/* Edit Lead Modal */}
             {editingLead && (
-                <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200">
                         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                             <h3 className="text-lg font-bold text-slate-900">Edit Lead Details</h3>
                             <button onClick={() => setEditingLead(null)} className="text-slate-400 hover:text-slate-600 p-1 hover:bg-white rounded-lg transition-all border border-transparent hover:border-slate-200">
@@ -866,8 +1057,23 @@ const LeadsList = () => {
                                 company: formData.get('company') as string,
                                 industry: formData.get('industry') as string,
                                 source: formData.get('source') as string,
+                                phone: formData.get('phone') as string,
+                                company_website: formData.get('company_website') as string,
+                                linkedin_url: formData.get('linkedin_url') as string,
+                                twitter_url: formData.get('twitter_url') as string,
+                                facebook_url: formData.get('facebook_url') as string,
+                                logo_url: formData.get('logo_url') as string,
+                                business_description: formData.get('business_description') as string,
+                                founded_year: formData.get('founded_year') as string,
+                                technographics: (formData.get('technographics') as string)?.split(';').map(s => s.trim()).filter(Boolean),
+                                meta_title: formData.get('meta_title') as string,
+                                meta_description: formData.get('meta_description') as string,
+                                primary_keywords: (formData.get('primary_keywords') as string)?.split(';').map(s => s.trim()).filter(Boolean),
+                                website_language: formData.get('website_language') as string,
+                                career_page_url: formData.get('career_page_url') as string,
+                                open_positions_count: parseInt(formData.get('open_positions_count') as string) || 0,
                             });
-                        }} className="p-6 space-y-4">
+                        }} className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1.5">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">First Name</label>
@@ -908,7 +1114,155 @@ const LeadsList = () => {
                                     />
                                 </div>
                             </div>
-                            <div className="space-y-1.5">
+
+                            {/* Contact & Social Section */}
+                            <div className="space-y-4 pt-2 border-t border-slate-100 mt-4">
+                                <h4 className="text-[10px] font-bold text-[#1b57b1] uppercase tracking-widest">Contact & Presence</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 pl-1">Phone</label>
+                                        <input 
+                                            name="phone" 
+                                            defaultValue={editingLead.phone || ''} 
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 pl-1">Website</label>
+                                        <input 
+                                            name="company_website" 
+                                            defaultValue={editingLead.company_website || ''} 
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-[#0077b5] pl-1">LinkedIn</label>
+                                        <input 
+                                            name="linkedin_url" 
+                                            defaultValue={editingLead.linkedin_url || ''} 
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-4 focus:ring-[#0077b5]/10 outline-none transition-all"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-[#1da1f2] pl-1">Twitter</label>
+                                        <input 
+                                            name="twitter_url" 
+                                            defaultValue={editingLead.twitter_url || ''} 
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-4 focus:ring-[#1da1f2]/10 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-[#1877f2] pl-1">Facebook</label>
+                                    <input 
+                                        name="facebook_url" 
+                                        defaultValue={editingLead.facebook_url || ''} 
+                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-4 focus:ring-[#1877f2]/10 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Advanced Data Section */}
+                            <div className="space-y-4 pt-4 border-t border-slate-100 mt-4">
+                                <h4 className="text-[10px] font-bold text-purple-600 uppercase tracking-widest">Business Insights</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 pl-1">Founded Year</label>
+                                        <input 
+                                            name="founded_year" 
+                                            defaultValue={editingLead.founded_year || ''} 
+                                            placeholder="e.g. 2004"
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-purple-100"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 pl-1">Logo URL</label>
+                                        <input 
+                                            name="logo_url" 
+                                            defaultValue={editingLead.logo_url || ''} 
+                                            placeholder="https://..."
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-purple-100"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 pl-1">Business Description</label>
+                                    <textarea 
+                                        name="business_description" 
+                                        defaultValue={editingLead.business_description || ''} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all h-20 focus:ring-4 focus:ring-purple-100 resize-none"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 pl-1">Technographics (Semi-colon separated)</label>
+                                    <input 
+                                        name="technographics" 
+                                        defaultValue={(editingLead.technographics || []).join('; ')} 
+                                        placeholder="React; Node.js; AWS"
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-purple-100"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* SEO & Growth Section */}
+                            <div className="space-y-4 pt-4 border-t border-slate-100 mt-4">
+                                <h4 className="text-[10px] font-bold text-green-600 uppercase tracking-widest">SEO & Growth</h4>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 pl-1">Meta Title</label>
+                                    <input 
+                                        name="meta_title" 
+                                        defaultValue={editingLead.meta_title || ''} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-green-100"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 pl-1">Meta Description</label>
+                                    <textarea 
+                                        name="meta_description" 
+                                        defaultValue={editingLead.meta_description || ''} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all h-20 focus:ring-4 focus:ring-green-100 resize-none"
+                                    />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 pl-1">Keywords (Semi-colon separated)</label>
+                                    <input 
+                                        name="primary_keywords" 
+                                        defaultValue={(editingLead.primary_keywords || []).join('; ')} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-green-100"
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 pl-1">Language</label>
+                                        <input 
+                                            name="website_language" 
+                                            defaultValue={editingLead.website_language || ''} 
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-green-100"
+                                        />
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-bold text-slate-500 pl-1">Job Openings</label>
+                                        <input 
+                                            name="open_positions_count" 
+                                            type="number"
+                                            defaultValue={editingLead.open_positions_count || 0} 
+                                            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-green-100"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-xs font-bold text-slate-500 pl-1">Career Page URL</label>
+                                    <input 
+                                        name="career_page_url" 
+                                        defaultValue={editingLead.career_page_url || ''} 
+                                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-sm outline-none transition-all focus:ring-4 focus:ring-green-100"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-1.5 pt-2 border-t border-slate-100 mt-4">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Lead Source</label>
                                 <select 
                                     name="source" 
@@ -932,6 +1286,193 @@ const LeadsList = () => {
                                 <button type="submit" className="flex-1 px-4 py-2.5 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20">Save Changes</button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* View Lead Details Modal */}
+            {viewingLead && (
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+                        <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 shrink-0">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-[#1b57b1] flex items-center justify-center text-white shadow-lg shadow-[#1b57b1]/20">
+                                    {viewingLead.logo_url ? (
+                                        <img src={viewingLead.logo_url} alt="Logo" className="w-8 h-8 object-contain" />
+                                    ) : (
+                                        <Users size={24} />
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-slate-900">
+                                        {viewingLead.first_name || viewingLead.last_name 
+                                            ? `${viewingLead.first_name || ''} ${viewingLead.last_name || ''}`.trim()
+                                            : viewingLead.company || 'Unnamed Lead'}
+                                    </h3>
+                                    <p className="text-sm text-slate-500 font-medium">{viewingLead.email}</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <button 
+                                    onClick={() => { setEditingLead(viewingLead); setViewingLead(null); }}
+                                    className="px-4 py-2 border border-slate-200 rounded-xl hover:bg-slate-50 transition-colors text-sm font-bold text-slate-600 flex items-center gap-2"
+                                >
+                                    <Edit2 size={16} />
+                                    Edit
+                                </button>
+                                <button onClick={() => setViewingLead(null)} className="text-slate-400 hover:text-slate-600 p-2 hover:bg-slate-100 rounded-xl transition-all">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-8 space-y-8">
+                            {/* Grid Layout for details */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {/* Contact Card */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-[#1b57b1]">
+                                        <Mail size={16} />
+                                        <h4 className="text-xs font-bold uppercase tracking-widest">Contact Information</h4>
+                                    </div>
+                                    <div className="bg-slate-50 rounded-2xl p-5 space-y-4 border border-slate-100">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Email Address</p>
+                                            <p className="text-sm font-medium text-slate-900 break-all">{viewingLead.email}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Phone Number</p>
+                                            <p className="text-sm font-medium text-slate-900">{viewingLead.phone || 'Not available'}</p>
+                                        </div>
+                                        <div className="pt-2 flex flex-wrap gap-2">
+                                            {viewingLead.linkedin_url && (
+                                                <a href={viewingLead.linkedin_url} target="_blank" rel="noopener" className="p-2 bg-white rounded-lg border border-slate-200 text-[#0077b5] hover:shadow-md transition-all">
+                                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z"/></svg>
+                                                </a>
+                                            )}
+                                            {viewingLead.twitter_url && (
+                                                <a href={viewingLead.twitter_url} target="_blank" rel="noopener" className="p-2 bg-white rounded-lg border border-slate-200 text-[#1da1f2] hover:shadow-md transition-all">
+                                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 4.557c-.883.392-1.832.656-2.828.775 1.017-.609 1.798-1.574 2.165-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-3.179 0-5.515 2.966-4.797 6.045-4.091-.205-7.719-2.165-10.148-5.144-10.148-5.144-1.29 2.213-.669 5.108 1.523 6.574-.806-.026-1.566-.247-2.229-.616-.054 2.281 1.581 4.415 3.949 4.89-.693.188-1.452.232-2.224.084.626 1.956 2.444 3.379 4.6 3.419-2.07 1.623-4.678 2.348-7.29 2.04 2.179 1.397 4.768 2.212 7.548 2.212 9.142 0 14.307-7.721 13.995-14.646.962-.695 1.797-1.562 2.457-2.549z"/></svg>
+                                                </a>
+                                            )}
+                                            {viewingLead.facebook_url && (
+                                                <a href={viewingLead.facebook_url} target="_blank" rel="noopener" className="p-2 bg-white rounded-lg border border-slate-200 text-[#1877f2] hover:shadow-md transition-all">
+                                                    <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+                                                </a>
+                                            )}
+                                            {viewingLead.company_website && (
+                                                <a href={viewingLead.company_website} target="_blank" rel="noopener" className="p-2 bg-white rounded-lg border border-slate-200 text-slate-600 hover:shadow-md transition-all">
+                                                    <Globe size={20} />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Business Card */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-purple-600">
+                                        <Database size={16} />
+                                        <h4 className="text-xs font-bold uppercase tracking-widest">Business Insights</h4>
+                                    </div>
+                                    <div className="bg-purple-50/50 rounded-2xl p-5 space-y-4 border border-purple-100">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Company Name</p>
+                                            <p className="text-sm font-bold text-slate-900">{viewingLead.company || 'Not available'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Industry</p>
+                                            <p className="text-sm font-medium text-slate-900">{viewingLead.industry || 'General'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Founded</p>
+                                            <p className="text-sm font-medium text-slate-900">{viewingLead.founded_year || 'Unknown'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">ICP Score</p>
+                                            <div className="mt-1 flex items-center gap-2">
+                                                <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-purple-600 rounded-full" style={{ width: `${viewingLead.icp_score || 0}%` }}></div>
+                                                </div>
+                                                <span className="text-sm font-bold text-purple-700">{viewingLead.icp_score || 0}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* SEO Card */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 text-green-600">
+                                        <Globe size={16} />
+                                        <h4 className="text-xs font-bold uppercase tracking-widest">SEO & Presence</h4>
+                                    </div>
+                                    <div className="bg-green-50/50 rounded-2xl p-5 space-y-4 border border-green-100">
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Meta Title</p>
+                                            <p className="text-sm font-medium text-slate-900 line-clamp-2">{viewingLead.meta_title || 'N/A'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Language</p>
+                                            <p className="text-sm font-medium text-slate-900 capitalize">{viewingLead.website_language || 'Detecting...'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase">Active Jobs</p>
+                                            <p className="text-sm font-medium text-slate-900">{viewingLead.open_positions_count || 0} listings</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Full Width Sections */}
+                            <div className="space-y-6 pt-4">
+                                <div>
+                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Business Description</h4>
+                                    <div className="bg-white border border-slate-100 rounded-2xl p-6 text-sm text-slate-600 leading-relaxed shadow-sm">
+                                        {viewingLead.business_description || 'No business description was captured for this lead.'}
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Technographics</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {viewingLead.technographics && viewingLead.technographics.length > 0 ? (
+                                                viewingLead.technographics.map((tech, idx) => (
+                                                    <span key={idx} className="px-3 py-1.5 bg-indigo-50 text-indigo-700 rounded-xl text-xs font-bold border border-indigo-100 flex items-center gap-1.5 shadow-sm">
+                                                        <div className="w-1 h-1 rounded-full bg-indigo-400"></div>
+                                                        {tech}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-slate-400 italic text-sm">No technographics detected</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">Keywords</h4>
+                                        <div className="flex flex-wrap gap-2">
+                                            {viewingLead.primary_keywords && viewingLead.primary_keywords.length > 0 ? (
+                                                viewingLead.primary_keywords.map((kw, idx) => (
+                                                    <span key={idx} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-xl text-xs font-bold border border-emerald-100 flex items-center gap-1.5 shadow-sm">
+                                                        # {kw}
+                                                    </span>
+                                                ))
+                                            ) : (
+                                                <span className="text-slate-400 italic text-sm">No keywords detected</span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-slate-400 font-medium">
+                                    <div className="flex items-center gap-4">
+                                        <span>Source: <span className="text-[#1b57b1] font-bold uppercase">{viewingLead.source || 'scraper'}</span></span>
+                                        <span>Lead ID: <span className="text-slate-600 font-mono">{viewingLead.id}</span></span>
+                                    </div>
+                                    <span>Created {viewingLead.created_at}</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             )}

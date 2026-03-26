@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { 
     ChevronRight, 
@@ -15,7 +16,8 @@ import {
     Linkedin,
     Map,
     XCircle,
-    CheckCircle
+    CheckCircle,
+    Mail
 } from 'lucide-react';
 
 const LandingPage = () => {
@@ -65,22 +67,47 @@ const LandingPage = () => {
                     <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-indigo-500/10 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
                 </div>
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <span className="flex h-2 w-2 rounded-full bg-[#1b57b1]"></span>
-                        <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Powered by Advanced AI Scrapers</span>
-                    </div>
+                <motion.div 
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.8 }}
+                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative text-center"
+                >
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: 0.2 }}
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-white rounded-full border border-slate-200 shadow-sm mb-8"
+                    >
+                        <span className="flex h-2 w-2 rounded-full bg-[#1b57b1] animate-pulse"></span>
+                        <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Powered by Advanced Extraction Engines</span>
+                    </motion.div>
                     
-                    <h1 className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-tight leading-[1.05] mb-8 animate-in fade-in slide-in-from-bottom-8 duration-700 delay-100">
-                        Extract High-Quality <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1b57b1] to-indigo-600">Leads in Seconds.</span>
-                    </h1>
+                    <motion.h1 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-tight leading-[1.05] mb-8"
+                    >
+                        Global Lead <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1b57b1] to-indigo-600">Intelligence Platform.</span>
+                    </motion.h1>
                     
-                    <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-12 leading-relaxed animate-in fade-in slide-in-from-bottom-12 duration-700 delay-200">
-                        Leads Scraper automates your lead generation with precision. Scrape LinkedIn, Google Maps, and niche directories with AI-driven verification.
-                    </p>
+                    <motion.p 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-12 leading-relaxed"
+                    >
+                        Leads Scraper v3 goes beyond simple emails. Capture 25+ deep data points including Technographics, Social Profiles, and AI-driven business insights.
+                    </motion.p>
                     
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-in fade-in slide-in-from-bottom-16 duration-700 delay-300">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.7 }}
+                        className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+                    >
                         <button 
                             onClick={() => navigate('/auth')}
                             className="w-full sm:w-auto px-8 py-4 bg-[#1b57b1] text-white rounded-2xl text-lg font-bold hover:bg-[#154690] transition-all shadow-2xl shadow-[#1b57b1]/30 flex items-center justify-center gap-2 group hover:-translate-y-1 cursor-pointer"
@@ -88,10 +115,17 @@ const LandingPage = () => {
                             Start Free Trial
                             <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
                         </button>
-                    </div>
+                    </motion.div>
+                </motion.div>
 
                     {/* Dashboard Preview Mockup */}
-                    <div className="mt-20 relative animate-in fade-in slide-in-from-bottom-20 duration-1000 delay-500">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 50 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ duration: 1, delay: 0.5 }}
+                        className="mt-20 relative"
+                    >
                         <div className="absolute inset-0 bg-gradient-to-t from-slate-50 to-transparent z-10 h-40 bottom-0 top-auto"></div>
                         <div className="bg-white p-2 rounded-[2rem] border border-slate-200 shadow-[0_32px_64px_-16px_rgba(0,0,0,0.1)] overflow-hidden max-w-5xl mx-auto">
                             <div className="rounded-[1.5rem] overflow-hidden border border-slate-100 aspect-[16/9] bg-slate-50 flex items-center justify-center">
@@ -135,66 +169,64 @@ const LandingPage = () => {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                </motion.div>
             </section>
 
             {/* Social Proof */}
             <section className="pb-20">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+                <motion.div 
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+                >
                     <p className="text-[11px] font-black uppercase tracking-[0.2em] text-slate-400 mb-10">Trusted by modern sales teams at</p>
                     <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500">
-                        {['Velocity', 'CloudSync', 'Apex', 'NextGen', 'Stellar'].map((brand) => (
-                            <span key={brand} className="text-2xl font-black text-slate-800 tracking-tighter italic">{brand.toUpperCase()}</span>
+                        {['Velocity', 'CloudSync', 'Apex', 'NextGen', 'Stellar'].map((brand, i) => (
+                            <motion.span 
+                                key={brand} 
+                                initial={{ opacity: 0, y: 10 }}
+                                whileInView={{ opacity: 1, y: 0 }}
+                                viewport={{ once: true }}
+                                transition={{ delay: i * 0.1 }}
+                                className="text-2xl font-black text-slate-800 tracking-tighter italic"
+                            >
+                                {brand.toUpperCase()}
+                            </motion.span>
                         ))}
                     </div>
-                </div>
+                </motion.div>
             </section>
 
             {/* Features Section */}
             <section id="features" className="py-24 bg-white relative scroll-mt-24">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="text-center max-w-3xl mx-auto mb-20">
+                    <motion.div 
+                        initial={{ opacity: 0, y: 20 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center max-w-3xl mx-auto mb-20"
+                    >
                         <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-6 leading-tight">
                             Everything you need to <br />
                             <span className="text-[#1b57b1]">scale your pipeline.</span>
                         </h2>
                         <p className="text-lg text-slate-500 font-medium leading-relaxed">
-                            Stop wasting hours on manual research. Our AI-powered toolkit does the heavy lifting while you focus on closing deals.
+                            Stop wasting hours on manual research. Our automation toolkit does the heavy lifting while you focus on closing deals.
                         </p>
-                    </div>
+                    </motion.div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                        <FeatureCard 
-                            icon={<Zap />}
-                            title="Instant AI Scraping"
-                            description="Leverage LLMs to extract precise business data from any website or directory with one click."
-                        />
-                        <FeatureCard 
-                            icon={<Search />}
-                            title="Global Search"
-                            description="Find exactly who you need with powerful filters across your entire lead database instantly."
-                        />
-                        <FeatureCard 
-                            icon={<BarChart3 />}
-                            title="Visual Analytics"
-                            description="Monitor your growth trends and lead quality with our interactive, data-driven dashboard."
-                        />
-                        <FeatureCard 
-                            icon={<Database />}
-                            title="Lead Management"
-                            description="Organize leads into campaigns, export to CSV, or sync with your favorite CRM effortlessly."
-                        />
-                        <FeatureCard 
-                            icon={<Shield />}
-                            title="Double Verification"
-                            description="Every email and contact point is double-checked for validity to minimize bounce rates."
-                        />
-                        <FeatureCard 
-                            icon={<CheckCircle2 />}
-                            title="Easy Export"
-                            description="Need your data offline? Export your verified leads to professional CSV formats in one click."
-                        />
+                        {[
+                            { icon: <Zap />, title: "Smart Data Extraction", description: "Extract precise business data from any website or directory with one click using our high-performance extraction engine." },
+                            { icon: <Shield />, title: "Deep Tech Scanning", description: "Automatically identify 50+ technology signatures including Shopify, Next.js, WordPress, and CRM stacks." },
+                            { icon: <BarChart3 />, title: "Sales Intelligence", description: "Monitor your growth trends and lead quality with our interactive, data-driven dashboard." },
+                            { icon: <Linkedin />, title: "Social Discovery", description: "Automatically find LinkedIn profiles, Twitter handles, and Facebook pages for every extracted lead." },
+                            { icon: <Mail />, title: "Personalized Outreach", description: "Craft perfectly timed emails using our rich-text editor and automated merge tags for 1:1 personalization." },
+                            { icon: <CheckCircle2 />, title: "Real-time Enrichment", description: "Enrich existing leads with SEO meta tags, primary keywords, and employee counts instantly." }
+                        ].map((feature, i) => (
+                            <FeatureCard key={i} {...feature} delay={i * 0.1} />
+                        ))}
                     </div>
                 </div>
             </section>
@@ -236,33 +268,24 @@ const LandingPage = () => {
                             </p>
                             
                             <div className="space-y-4">
-                                <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors group">
-                                    <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1b57b1] flex items-center justify-center shrink-0 group-hover:bg-[#1b57b1] group-hover:text-white transition-all">
-                                        <Linkedin size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 border-none pb-0 m-0">LinkedIn Extraction</h4>
-                                        <p className="text-sm text-slate-500 font-medium mt-1">Get emails, job titles, and company data from LinkedIn profiles automatically.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors group">
-                                    <div className="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 group-hover:bg-indigo-600 group-hover:text-white transition-all">
-                                        <Map size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 border-none pb-0 m-0">Hyper-Local Targeting</h4>
-                                        <p className="text-sm text-slate-500 font-medium mt-1">Scrape local business data from Google Maps with phone numbers and ratings.</p>
-                                    </div>
-                                </div>
-                                <div className="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors group">
-                                    <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0 group-hover:bg-emerald-600 group-hover:text-white transition-all">
-                                        <SearchCode size={24} />
-                                    </div>
-                                    <div>
-                                        <h4 className="font-bold text-slate-900 border-none pb-0 m-0">Custom Search Logic</h4>
-                                        <p className="text-sm text-slate-500 font-medium mt-1">Define custom AI rules to find leads on any directory or niche industry website.</p>
-                                    </div>
-                                </div>
+                                <SolutionItem 
+                                    icon={<Database size={24} />}
+                                    title="Deep Business Intelligence"
+                                    description="Extract 25+ critical data points including SEO tags, primary keywords, and employee counts with real-time AI verification."
+                                    delay={0.3}
+                                />
+                                <SolutionItem 
+                                    icon={<SearchCode size={24} />}
+                                    title="Automated Technographics"
+                                    description="Identify 50+ technology signatures instantly. Know precisely which CMS, CRM, and Frameworks your leads are built on."
+                                    delay={0.4}
+                                />
+                                <SolutionItem 
+                                    icon={<Zap size={24} />}
+                                    title="AI-Ready Personalization"
+                                    description="Fuel your outreach with 1:1 personalization tags and social profiles discovered across LinkedIn, Twitter, and more."
+                                    delay={0.5}
+                                />
                             </div>
                         </div>
                         
@@ -308,47 +331,58 @@ const LandingPage = () => {
                         </p>
                     </div>
 
-                    <div className="bg-slate-50 rounded-[3rem] p-4 md:p-12 border border-slate-200/60 shadow-xl shadow-slate-200/20">
+                    <div className="bg-white rounded-[3rem] p-4 md:p-12 border border-slate-200/60 shadow-xl shadow-slate-100/40 relative overflow-hidden">
                         <div className="overflow-x-auto">
                             <table className="w-full min-w-[600px] border-separate border-spacing-y-4">
                                 <thead>
                                     <tr>
-                                        <th className="text-left py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">Features</th>
-                                        <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-slate-400">Traditional Tools</th>
-                                        <th className="text-center py-4 px-6 text-xs font-black uppercase tracking-widest text-[#1b57b1] bg-[#1b57b1]/5 rounded-t-3xl">Leads Scraper</th>
+                                        <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-white rounded-tl-[2rem] border-l border-t border-slate-100 shadow-sm">Features</th>
+                                        <th className="text-center py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-white border-t border-slate-100 shadow-sm">Traditional Tools</th>
+                                        <th className="text-center py-6 px-6 text-xs font-black uppercase tracking-[0.2em] text-white bg-[#1b57b1] rounded-tr-[2rem] shadow-2xl relative z-20">Leads Scraper</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-transparent">
                                     <ComparisonRow 
+                                        feature="Data Points"
+                                        traditional="5 - 10 Fields"
+                                        ours="25+ Deep Fields"
+                                        isBetter
+                                    />
+                                    <ComparisonRow 
+                                        feature="Technographics"
+                                        traditional="Not Available"
+                                        ours="50+ Tech Signatures"
+                                        isBetter
+                                    />
+                                    <ComparisonRow 
                                         feature="Data Verification"
                                         traditional="Manual or Cached"
-                                        ours="Real-time AI Validation"
+                                        ours="Real-time Verification"
                                         isBetter
                                     />
                                     <ComparisonRow 
-                                        feature="Accuracy Rate"
-                                        traditional="60% - 75%"
-                                        ours="99.8% Verified"
+                                        feature="Social Discovery"
+                                        traditional="Manual Research"
+                                        ours="Automated Patterns"
                                         isBetter
                                     />
                                     <ComparisonRow 
-                                        feature="Local Targeting"
-                                        traditional="Basic City Search"
-                                        ours="Precision Map Extraction"
+                                        feature="Lead Personalization"
+                                        traditional="Bulk / Generic"
+                                        ours="1:1 AI Merge tags"
                                         isBetter
                                     />
                                     <ComparisonRow 
-                                        feature="Lead Scoring"
-                                        traditional="None (Manual)"
-                                        ours="Automated ICP Scoring"
+                                        feature="ICP Scoring"
+                                        traditional="Subjective"
+                                        ours="Automated (1-10)"
                                         isBetter
                                     />
                                     <ComparisonRow 
                                         feature="Deliverability"
                                         traditional="Frequent Bounces"
-                                        ours="Zero-Bounce Guarantee"
+                                        ours="Zero-Bounce Focus"
                                         isBetter
-                                        isLast
                                     />
                                 </tbody>
                             </table>
@@ -373,23 +407,26 @@ const LandingPage = () => {
                             features={['Basic Scraping', 'Leads List', 'CSV Export']}
                             buttonText="Get Started"
                             onButtonClick={() => navigate('/auth')}
+                            delay={0.1}
                         />
                         <PricingCard 
                             name="Pro"
                             price="19"
                             credits="100 Leads / Month"
-                            features={['Advanced AI Extract', 'Campaign Management', 'Global Search', 'Priority Support']}
+                            features={['Advanced AI Extract', 'Campaign Management', 'Technographics (50+)', 'Social Discovery', 'Personalized Email']}
                             popular
                             buttonText="Upgrade to Pro"
                             onButtonClick={() => navigate('/auth')}
+                            delay={0.2}
                         />
                         <PricingCard 
                             name="Enterprise"
                             price="79"
                             credits="500 Leads / Month"
-                            features={['Bulk Scraping', 'Full Dashboard', 'API Access', 'Dedicated Account Manager']}
+                            features={['Bulk Scraping', 'Full Dashboard', 'Advanced Enrichment (25+)', 'Audit Logs & Team Seats', 'Priority Support']}
                             buttonText="Contact Sales"
                             onButtonClick={() => navigate('/auth')}
+                            delay={0.3}
                         />
                     </div>
                 </div>
@@ -416,18 +453,49 @@ const LandingPage = () => {
     );
 };
 
-const FeatureCard = ({ icon, title, description }: { icon: React.ReactElement, title: string, description: string }) => (
-    <div className="p-8 bg-slate-50 rounded-[2rem] border border-slate-200/50 hover:border-[#1b57b1]/30 hover:bg-white hover:shadow-xl hover:shadow-slate-200/50 transition-all group">
-        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-[#1b57b1] shadow-sm mb-6 group-hover:bg-[#1b57b1] group-hover:text-white transition-all duration-300 transform group-hover:-rotate-6">
+const FeatureCard = ({ icon, title, description, delay = 0 }: any) => (
+    <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay }}
+        whileHover={{ y: -5, transition: { duration: 0.2 } }}
+        className="p-8 rounded-[2.5rem] bg-white border border-slate-100 shadow-sm hover:shadow-xl hover:border-blue-100 transition-all group outline-none"
+    >
+        <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-[#1b57b1] mb-6 group-hover:bg-[#1b57b1] group-hover:text-white transition-all duration-300 transform group-hover:-rotate-6">
             {React.cloneElement(icon, { size: 28 } as any)}
         </div>
         <h3 className="text-xl font-bold text-slate-900 mb-4 tracking-tight">{title}</h3>
         <p className="text-slate-600 font-medium leading-relaxed">{description}</p>
-    </div>
+    </motion.div>
 );
 
-const PricingCard = ({ name, price, credits, features, popular, buttonText, onButtonClick }: any) => (
-    <div className={`p-8 rounded-[2.5rem] flex flex-col h-full transition-all relative ${popular ? 'bg-white shadow-[0_32px_64px_-16px_rgba(27,87,177,0.15)] border-2 border-[#1b57b1] scale-105 z-10' : 'bg-white border border-slate-200 shadow-sm hover:shadow-lg'}`}>
+const SolutionItem = ({ icon, title, description, delay = 0 }: any) => (
+    <motion.div 
+        initial={{ opacity: 0, x: -20 }}
+        whileInView={{ opacity: 1, x: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay }}
+        className="flex items-start gap-4 p-4 rounded-2xl hover:bg-slate-50 transition-colors group"
+    >
+        <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1b57b1] flex items-center justify-center shrink-0 group-hover:bg-[#1b57b1] group-hover:text-white transition-all">
+            {icon}
+        </div>
+        <div>
+            <h4 className="font-bold text-slate-900 border-none pb-0 m-0">{title}</h4>
+            <p className="text-sm text-slate-500 font-medium mt-1">{description}</p>
+        </div>
+    </motion.div>
+);
+
+const PricingCard = ({ name, price, credits, features, popular, buttonText, onButtonClick, delay = 0 }: any) => (
+    <motion.div 
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay }}
+        className={`p-8 rounded-[2.5rem] flex flex-col h-full transition-all relative ${popular ? 'bg-white shadow-[0_32px_64px_-16px_rgba(27,87,177,0.15)] border-2 border-[#1b57b1] scale-105 z-10' : 'bg-white border border-slate-200 shadow-sm hover:shadow-lg'}`}
+    >
         {popular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#1b57b1] text-white px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] shadow-lg">Most Popular</div>}
         <div className="mb-8">
             <h3 className="text-lg font-black text-slate-900 uppercase tracking-widest mb-2">{name}</h3>
@@ -454,25 +522,32 @@ const PricingCard = ({ name, price, credits, features, popular, buttonText, onBu
             {buttonText}
             <ArrowRight size={16} className="opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
         </button>
-    </div>
+    </motion.div>
 );
 
-const ComparisonRow = ({ feature, traditional, ours, isBetter, isLast }: any) => (
-    <tr className="group transition-all">
-        <td className="py-6 px-6 bg-white rounded-l-2xl border-l border-y border-slate-100 shadow-sm font-bold text-slate-900">{feature}</td>
-        <td className="py-6 px-6 bg-white border-y border-slate-100 shadow-sm text-center">
+const ComparisonRow = ({ feature, traditional, ours, isBetter }: any) => (
+    <motion.tr 
+        initial={{ opacity: 0, y: 10 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="group transition-all duration-300 hover:scale-[1.01] hover:z-10 relative"
+    >
+        <td className="py-6 px-6 bg-white border-l border-y border-slate-100 shadow-sm font-black text-slate-900 group-hover:bg-slate-50 transition-colors rounded-l-[1.5rem]">{feature}</td>
+        <td className="py-6 px-6 bg-white border-y border-slate-100 shadow-sm text-center group-hover:bg-slate-50 transition-colors">
             <div className="flex flex-col items-center gap-2">
-                <XCircle className="text-slate-300" size={20} />
-                <span className="text-sm font-medium text-slate-400">{traditional}</span>
+                <XCircle className="text-slate-500 opacity-90" size={18} />
+                <span className="text-xs font-bold text-slate-500">{traditional}</span>
             </div>
         </td>
-        <td className={`py-6 px-6 text-center shadow-lg border-x border-y border-[#1b57b1]/20 ${isLast ? 'rounded-b-3xl' : ''} ${isBetter ? 'bg-white' : 'bg-slate-50'}`}>
+        <td className={`py-6 px-6 text-center shadow-[0_20px_40px_-15px_rgba(27,87,177,0.15)] border-x border-y border-[#1b57b1]/40 relative z-10 rounded-r-[1.5rem] ${isBetter ? 'bg-white' : 'bg-slate-50'}`}>
             <div className="flex flex-col items-center gap-2">
-                <CheckCircle className="text-[#1b57b1]" size={20} />
-                <span className="text-sm font-black text-[#1b57b1]">{ours}</span>
+                <div className="size-7 bg-[#1b57b1] rounded-full flex items-center justify-center shadow-lg shadow-[#1b57b1]/20">
+                    <CheckCircle className="text-white" size={16} />
+                </div>
+                <span className="text-sm font-black text-[#1b57b1] tracking-tight">{ours}</span>
             </div>
         </td>
-    </tr>
+    </motion.tr>
 );
 
 export default LandingPage;
