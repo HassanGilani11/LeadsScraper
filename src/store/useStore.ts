@@ -39,6 +39,12 @@ export interface Lead {
     icp_score?: number;
     industry?: string;
     source?: string;
+    job_title?: string;
+    linkedin_url?: string;
+    phone?: string;
+    company_website?: string;
+    company_size?: string;
+    location?: string;
 }
 
 export interface Notification {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { ShieldAlert } from 'lucide-react';
+import { ShieldAlert, Activity } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
@@ -17,6 +17,7 @@ import {
     UserCog,
     History,
     BarChart3,
+    DollarSign,
     X
 } from 'lucide-react';
 
@@ -140,6 +141,30 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                         >
                             <BarChart3 size={20} />
                             <span>Usage Analytics</span>
+                        </Link>
+                        <Link
+                            to="/admin/revenue"
+                            className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer mt-1
+                                ${pathname === '/admin/revenue'
+                                    ? 'bg-[#1b57b1]/10 text-[#1b57b1]'
+                                    : 'text-slate-600 hover:bg-slate-100'}
+                            `}
+                        >
+                            <DollarSign size={20} />
+                            <span>Revenue Metrics</span>
+                        </Link>
+                        <Link
+                            to="/admin/data-quality"
+                            className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer mt-1
+                                ${pathname === '/admin/data-quality'
+                                    ? 'bg-[#1b57b1]/10 text-[#1b57b1]'
+                                    : 'text-slate-600 hover:bg-slate-100'}
+                            `}
+                        >
+                            <ShieldAlert size={20} />
+                            <span>Data Quality</span>
                         </Link>
                         <Link
                             to="/admin/audit-logs"

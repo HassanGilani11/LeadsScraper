@@ -46,12 +46,17 @@ Deno.serve(async (req: Request) => {
           items: {
             type: SchemaType.OBJECT,
             properties: {
-              first_name: { type: SchemaType.STRING, description: "First name of the lead" },
-              last_name: { type: SchemaType.STRING, description: "Last name of the lead" },
-              email: { type: SchemaType.STRING, description: "Email address, must be a valid email format" },
+              first_name: { type: SchemaType.STRING, description: "First name" },
+              last_name: { type: SchemaType.STRING, description: "Last name" },
+              email: { type: SchemaType.STRING, description: "Email address" },
               company: { type: SchemaType.STRING, description: "Company name" },
-              industry: { type: SchemaType.STRING, description: "Industry or sector of the lead/company (e.g., SaaS, Finance, Healthcare)" },
-              icp_score: { type: SchemaType.NUMBER, description: "Ideal Customer Profile score from 1 to 10 based on relevance to B2B SaaS sales" }
+              job_title: { type: SchemaType.STRING, description: "Lead's job title" },
+              phone: { type: SchemaType.STRING, description: "Available phone number" },
+              company_website: { type: SchemaType.STRING, description: "Official company website URL" },
+              company_size: { type: SchemaType.STRING, description: "Company employee count or size" },
+              location: { type: SchemaType.STRING, description: "Primary location (City, State, or Country)" },
+              industry: { type: SchemaType.STRING, description: "Industry or sector" },
+              icp_score: { type: SchemaType.NUMBER, description: "Relevance score (1-10)" }
             },
             required: ["email", "icp_score"]
           }
@@ -65,12 +70,11 @@ Deno.serve(async (req: Request) => {
       
       Follow these strict rules for extraction:
       1. EMAIL: Extract every valid email address found.
-      2. NAME: If you cannot find a specific person's name, do NOT leave it blank and do NOT use literal strings like "NULL" or "EMPTY". Instead, derive a friendly placeholder from the email prefix (e.g., for "support@company.com", set First Name: "Support", Last Name: "Team"). For "john.doe@company.com" where the name isn't explicit in text, infer First: "John", Last: "Doe". 
-      3. COMPANY: Determine the company name from the website content or domain. Apply this company name to all extracted leads if they belong to it.
-      4. INDUSTRY: You MUST determine the exact industry or sector (e.g., B2B SaaS, IT Services, Healthcare, Real Estate) based on the website content. Provide your best intelligent guess. Do NOT use "Unknown", "NULL", or leave it blank. Apply this industry to ALL extracted leads.
-      5. ICP SCORE: Calculate an "icp_score" from 1 to 10 based on relevance (10: Executive/Decision Maker, 7-9: Mid-management, 4-6: Contributor, 1-3: Generic contact).
-      
-      Only include entries that have at least an email address.
+      2. NAME: Derive First/Last names intelligently. If not explicit, infer from the email prefix.
+      3. COMPANY: Determine the company name and website from the content.
+      4. ENRICHMENT: You MUST try to find the person's Job Title, Phone, Company Size, and Location. Do not invent data, but use all available clues.
+      5. INDUSTRY: Categorize the company (e.g., B2B SaaS, IT Services, Healthcare).
+      6. ICP SCORE: Calculate a score from 1 to 10 based on seniority (10: CXO/Owner, 7: Manager, 4: Individual Contributor).
       
       Content to analyze:
       ${contentToAnalyze}
@@ -107,7 +111,12 @@ Deno.serve(async (req: Request) => {
           first_name: fName || getFallbackName(email, false),
           last_name: lName || getFallbackName(email, true),
           company: sanitizeField(lead.company) || 'Unknown Company',
-          industry: sanitizeField(lead.industry) || 'Technology', // Fallback to a common industry if all else fails
+          job_title: sanitizeField(lead.job_title),
+          phone: sanitizeField(lead.phone),
+          company_website: sanitizeField(lead.company_website),
+          company_size: sanitizeField(lead.company_size),
+          location: sanitizeField(lead.location),
+          industry: sanitizeField(lead.industry) || 'Technology',
           icp_score: lead.icp_score || 1,
           source_url: url || null,
           status: 'new',

@@ -18,6 +18,8 @@ import PublicRoute from '@/components/auth/PublicRoute';
 import UserManagement from '@/pages/admin/UserManagement';
 import AuditLogs from '@/pages/admin/AuditLogs';
 import UsageAnalytics from '@/pages/admin/UsageAnalytics';
+import RevenueMetrics from '@/pages/admin/RevenueMetrics';
+import DataQuality from '@/pages/admin/DataQuality';
 
 const App = () => {
     const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns, siteSettings, setSiteSettings } = useStore();
@@ -353,6 +355,22 @@ const App = () => {
                     element={
                         <ProtectedRoute>
                             {user?.role === 'Admin' ? <UsageAnalytics /> : <Navigate to="/dashboard" replace />}
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/revenue" 
+                    element={
+                        <ProtectedRoute>
+                            {user?.role === 'Admin' ? <RevenueMetrics /> : <Navigate to="/dashboard" replace />}
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/data-quality" 
+                    element={
+                        <ProtectedRoute>
+                            {user?.role === 'Admin' ? <DataQuality /> : <Navigate to="/dashboard" replace />}
                         </ProtectedRoute>
                     } 
                 />

@@ -105,7 +105,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                 >
                     <Menu size={20} />
                 </button>
-                <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 truncate max-w-[120px] xs:max-w-none">{title || "Analytics"}</h2>
+                <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 truncate">{title || "Analytics"}</h2>
             </div>
 
             <div className="flex-1 flex items-center justify-end gap-2 md:gap-4 ml-2">
