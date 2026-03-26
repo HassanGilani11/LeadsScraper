@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
     Users, 
-    UserCheck, 
     UserPlus, 
     UserMinus, 
     Search, 
@@ -14,7 +13,11 @@ import {
     ArrowUpDown,
     Download,
     Trash2,
-    Loader2
+    Loader2,
+    UserX,
+    UserCheck,
+    CheckCircle2,
+    XCircle
 } from 'lucide-react';
 import AppContainer from '@/components/layout/AppContainer';
 import { useStore } from '@/store/useStore';
@@ -46,6 +49,7 @@ const UserManagement = () => {
     const [inviteData, setInviteData] = useState({
         fullName: '',
         email: '',
+        password: '',
         plan: 'Starter',
         status: 'Pending'
     });
@@ -207,6 +211,40 @@ const UserManagement = () => {
         }
     };
 
+    const handleApproveUser = async (user: any) => {
+        try {
+            setLoading(true);
+            const { data, error } = await supabase.functions.invoke('admin-create-user', {
+                body: { 
+                    type: 'approve',
+                    userId: user.id
+                }
+            });
+
+            if (error || data?.error) {
+                const errMsg = error?.message || data?.error || 'Failed to approve user';
+                throw new Error(errMsg);
+            }
+
+            // Optimistic update
+            setUsers(prev => prev.map(u => u.id === user.id ? { ...u, status: 'Active' } : u));
+            
+            addNotification({ 
+                title: 'Success', 
+                message: `User ${user.full_name} has been approved`, 
+                type: 'success' 
+            });
+            
+            fetchUsers();
+        } catch (err: any) {
+            console.error("APPROVAL_ERROR:", err);
+            addNotification({ title: 'Error', message: err.message, type: 'error' });
+        } finally {
+            setLoading(false);
+            setActiveDropdown(null);
+        }
+    };
+
     const handleBan = (user: any) => {
         setSelectedUser(user);
         setBanReason(user.ban_reason || '');
@@ -261,23 +299,34 @@ const UserManagement = () => {
                 }
             });
 
-            if (error || data?.error) throw error || new Error(data.error);
+            if (error || data?.error) {
+                const errMsg = error?.message || data?.error || 'Failed to delete user';
+                throw new Error(errMsg);
+            }
 
-            // Log Audit Action
-            await logAuditAction({
-                actionType: 'USER_DELETED',
-                targetEntity: user.email,
-                beforeValue: { id: user.id, email: user.email, full_name: user.full_name },
-                note: 'User account permanently deleted by admin.'
-            });
-
+            // Optimistic update
+            setUsers(prev => prev.filter(u => u.id !== user.id));
+            
             addNotification({ title: 'Success', message: 'User deleted successfully', type: 'success' });
             fetchUsers();
         } catch (err: any) {
-            addNotification({ title: 'Error', message: err.message || 'Failed to delete user', type: 'error' });
+            console.error("DELETION_ERROR:", err);
+            addNotification({ title: 'Error', message: err.message, type: 'error' });
         } finally {
             setLoading(false);
             setActiveDropdown(null);
+        }
+    };
+
+    const handleStatusChange = async (user: any, newStatus: string) => {
+        if (newStatus === user.status) return;
+        
+        if (newStatus === 'Active' && (user.status === 'Pending Approval' || user.status === 'Pending')) {
+            await handleApproveUser(user);
+        } else if (newStatus === 'Banned') {
+            handleBan(user);
+        } else if (newStatus === 'Active' && user.status === 'Banned') {
+            await handleToggleStatus(user);
         }
     };
 
@@ -529,7 +578,6 @@ const UserManagement = () => {
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Joined</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Leads Scraped</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Status</th>
-                                    <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Active</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Actions</th>
                                 </tr>
                             </thead>
@@ -579,24 +627,34 @@ const UserManagement = () => {
                                         <td className="px-6 py-4 text-center">
                                             <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider border transition-all inline-block ${
                                                 user.status === 'Active' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                                user.status === 'Pending' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                (user.status === 'Pending Approval' || user.status === 'Pending') ? 'bg-amber-50 text-amber-700 border-amber-100' :
                                                 'bg-rose-50 text-rose-700 border-rose-100'
                                             }`}>
-                                                {user.status || 'Active'}
+                                                {(user.status === 'Pending Approval' || user.status === 'Pending') ? 'PENDING' : user.status || 'Active'}
                                             </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                            <div className="flex justify-center">
-                                                <div 
-                                                    onClick={() => user.status !== 'Banned' ? handleBan(user) : handleToggleStatus(user)}
-                                                    className={`w-12 h-6 rounded-full p-1 transition-all cursor-pointer relative ${user.status !== 'Banned' ? 'bg-emerald-100' : 'bg-slate-200'}`}
-                                                >
-                                                    <div className={`w-4 h-4 rounded-full shadow-sm transition-transform duration-300 ${user.status !== 'Banned' ? 'translate-x-6 bg-emerald-600' : 'translate-x-0 bg-slate-400'}`}></div>
-                                                </div>
-                                            </div>
                                         </td>
                                          <td className="px-6 py-4 text-right">
                                             <div className="flex items-center justify-end gap-1 relative">
+                                                {(user.status === 'Pending Approval' || user.status === 'Pending') && (
+                                                    <div className="flex items-center gap-1.5 mr-2">
+                                                        <button 
+                                                            onClick={() => { console.log('Approve clicked for:', user.id); handleApproveUser(user); }}
+                                                            disabled={loading}
+                                                            title="Approve User" 
+                                                            className={`px-3 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-emerald-200 ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-emerald-700'}`}
+                                                        >
+                                                            {loading ? <Loader2 size={14} className="animate-spin" /> : <UserCheck size={14} />} Approve
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => { console.log('Reject clicked for:', user.id); handleDeleteUser(user); }}
+                                                            disabled={loading}
+                                                            title="Reject User" 
+                                                            className={`px-3 py-1 bg-white text-rose-600 border border-rose-200 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-rose-50'}`}
+                                                        >
+                                                            {loading ? <Loader2 size={14} className="animate-spin" /> : <UserX size={14} />} Reject
+                                                        </button>
+                                                    </div>
+                                                )}
                                                 <button 
                                                     onClick={() => { setSelectedUser(user); setIsDetailModalOpen(true); }}
                                                     title="View Details" 
@@ -812,6 +870,7 @@ const UserManagement = () => {
                                     body: {
                                         type: 'create',
                                         email: inviteData.email,
+                                        password: inviteData.password,
                                         fullName: inviteData.fullName,
                                         plan: inviteData.plan,
                                         status: inviteData.status
@@ -845,7 +904,7 @@ const UserManagement = () => {
 
                                 addNotification({ title: 'Success', message: 'User profile created successfully', type: 'success' });
                                 setIsInviteModalOpen(false);
-                                setInviteData({ fullName: '', email: '', plan: 'Starter', status: 'Active' });
+                                setInviteData({ fullName: '', email: '', password: '', plan: 'Starter', status: 'Active' });
                                 fetchUsers();
                             } catch (err: any) {
                                 console.error("Error creating user:", err);
@@ -869,9 +928,19 @@ const UserManagement = () => {
                                 <input 
                                     type="email" 
                                     required
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10"
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 shadow-sm"
                                     value={inviteData.email}
                                     onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
+                                />
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Password (Optional - Leave empty to send invite)</label>
+                                <input 
+                                    type="password" 
+                                    placeholder="Leave empty for email invitation..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 shadow-sm"
+                                    value={inviteData.password}
+                                    onChange={(e) => setInviteData({ ...inviteData, password: e.target.value })}
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
@@ -984,6 +1053,14 @@ const UserManagement = () => {
                                         >
                                             <Ban size={14} /> {selectedUser?.status === 'Active' ? 'Suspend Account' : 'Lift Suspension'}
                                         </button>
+                                        {(selectedUser?.status === 'Pending Approval' || selectedUser?.status === 'Pending') && (
+                                            <button 
+                                                onClick={() => { setIsDetailModalOpen(false); handleApproveUser(selectedUser); }}
+                                                className="w-full px-4 py-2 bg-emerald-600 rounded-lg text-xs font-bold text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                                            >
+                                                <UserCheck size={14} /> Approve User Account
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </div>

@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 
 export type AuditActionType = 
+  | 'USER_APPROVED'
   | 'USER_BANNED' 
   | 'USER_UNBANNED' 
   | 'PLAN_CHANGED' 

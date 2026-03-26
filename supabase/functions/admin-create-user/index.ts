@@ -2,10 +2,12 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': '*',
 };
 
 Deno.serve(async (req: Request) => {
+  console.log("DIAGNOSTIC_LOG: Function started", req.method, req.url);
+  
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -19,9 +21,11 @@ Deno.serve(async (req: Request) => {
     }
 
     const authHeader = req.headers.get('Authorization');
+    console.log("DIAGNOSTIC_LOG: Auth Header present:", !!authHeader);
+
     if (!authHeader) {
       return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 401,
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
@@ -32,111 +36,130 @@ Deno.serve(async (req: Request) => {
     // 1. Verify requester is a valid user
     const { data: { user: sender }, error: authError } = await supabaseAdmin.auth.getUser(token);
     if (authError || !sender) {
-      return new Response(JSON.stringify({ error: 'Unauthorized: Invalid token', details: authError?.message }), {
-        status: 401,
+      console.error("DIAGNOSTIC_LOG: Auth Error:", authError?.message);
+      return new Response(JSON.stringify({ 
+        error: 'Unauthorized: Invalid token', 
+        details: authError?.message 
+      }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
+    console.log("DIAGNOSTIC_LOG: Sender:", sender.email);
+
     // 2. Verify requester is an Admin
-    const { data: profile } = await supabaseAdmin
+    let { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', sender.id)
       .single();
 
-    if (profile?.role !== 'Admin') {
-      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
-        status: 403,
+    if (profileError || !profile) {
+       console.error("DIAGNOSTIC_LOG: Profile Error:", profileError);
+    }
+
+    // Relaxed case-insensitive role check
+    const userRole = (profile?.role || '').toLowerCase();
+    console.log("DIAGNOSTIC_LOG: User Role:", userRole);
+
+    if (userRole !== 'admin') {
+      return new Response(JSON.stringify({ 
+        error: 'Forbidden: Admin access required', 
+        currentRole: profile?.role 
+      }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // 3. Process the action
-    const { type, email, fullName, plan, status, userId } = await req.json();
+    const body = await req.json();
+    const { type, email, fullName, plan, password, status, userId } = body;
+    console.log("DIAGNOSTIC_LOG: Action Type:", type);
 
     if (type === 'create') {
-      if (!email) throw new Error("Email is required for invitation");
-      
-      // Create user and send invite
-      const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-        data: { full_name: fullName },
-        redirectTo: `${req.headers.get('origin') || ''}/reset-password`
-      });
+      if (!email) throw new Error("Email is required for creation");
 
-      if (inviteError) throw inviteError;
-
-      // Upsert profile (trigger fallback)
-      if (inviteData.user) {
-        const { error: profileError } = await supabaseAdmin
-          .from('profiles')
-          .upsert({
-            id: inviteData.user.id,
-            user_id: inviteData.user.id,
-            email: email,
-            full_name: fullName,
-            plan: plan || 'Starter',
-            status: status || 'Pending'
-          });
-        
-        if (profileError) console.error("Profile upsert error:", profileError);
+      let authUser;
+      if (password) {
+        console.log("DIAGNOSTIC_LOG: Creating user with password...");
+        const { data, error } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          password,
+          email_confirm: true,
+          user_metadata: { full_name: fullName }
+        });
+        if (error) throw error;
+        authUser = data.user;
+      } else {
+        console.log("DIAGNOSTIC_LOG: Inviting user by email...");
+        const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
+          data: { full_name: fullName },
+          redirectTo: `${req.headers.get('origin') || ''}/auth/callback`
+        });
+        if (error) throw error;
+        authUser = data.user;
       }
 
-      return new Response(JSON.stringify({ success: true, user: inviteData.user }), {
+      if (authUser) {
+        await supabaseAdmin
+          .from('profiles')
+          .upsert({
+            id: authUser.id,
+            user_id: authUser.id,
+            email: email,
+            full_name: fullName,
+            role: 'User',
+            plan: plan || 'starter',
+            status: status || 'Pending Approval'
+          });
+      }
+
+      return new Response(JSON.stringify({ success: true, user: authUser }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    if (type === 'reset-password') {
-      if (!userId) throw new Error("User ID is required for password reset");
-      const { data: userAuth } = await supabaseAdmin.auth.admin.getUserById(userId);
-      if (!userAuth.user) throw new Error("User not found");
+    if (type === 'approve') {
+      const { error: updateError } = await supabaseAdmin
+        .from('profiles')
+        .update({ status: 'Active' })
+        .eq('id', userId);
 
-      const { error: resetError } = await supabaseAdmin.auth.admin.generateLink({
-        type: 'recovery',
-        email: userAuth.user.email,
-        redirectTo: `${req.headers.get('origin') || ''}/reset-password`
-      });
+      if (updateError) throw updateError;
+      console.log("DIAGNOSTIC_LOG: Approved Successfully:", userId);
 
-      if (resetError) throw resetError;
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, message: 'User approved' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     if (type === 'delete-user') {
-      if (!userId) throw new Error("User ID is required for deletion");
-      if (userId === sender.id) throw new Error("Cannot delete yourself");
-      
-      // Attempt to delete from Auth (might fail if they were already deleted via Dashboard)
+      console.log("DIAGNOSTIC_LOG: Deleting user:", userId);
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-      if (deleteError && !deleteError.message.includes("User not found")) {
-         throw deleteError;
+      
+      if (deleteError) {
+        console.warn("DIAGNOSTIC_LOG: Delete Error:", deleteError);
+        // Manual cleanup if cascade fails
+        await supabaseAdmin.from('profiles').delete().eq('id', userId);
+        throw new Error(`Delete failed: ${deleteError.message}`);
       }
 
-      // Manually clean up the profiles table just in case the Cascade didn't fire
-      const { error: profileDeleteError } = await supabaseAdmin
-        .from('profiles')
-        .delete()
-        .eq('id', userId);
-        
-      if (profileDeleteError) throw profileDeleteError;
-      
-      return new Response(JSON.stringify({ success: true }), {
+      return new Response(JSON.stringify({ success: true, message: 'User deleted' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    return new Response(JSON.stringify({ error: 'Invalid action type' }), {
-      status: 400,
+    return new Response(JSON.stringify({ error: 'Invalid action type', type }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err: any) {
-    console.error("EDGE_FUNCTION_ERROR:", err.message);
-    // Returning 200 with an error object ensures the client SDK doesn't swallow the message in a generic FunctionsHttpError
+    console.error("DIAGNOSTIC_LOG: Final Catch:", err.message);
     return new Response(JSON.stringify({ error: err.message }), {
-      status: 200, 
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

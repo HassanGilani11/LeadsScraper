@@ -37,37 +37,39 @@ const Auth = () => {
                 });
                 if (error) throw error;
                 if (data.session) {
+                    // Verify account status
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('status')
+                        .eq('id', data.session.user.id)
+                        .single();
+
+                    if (profile?.status !== 'Active') {
+                        await supabase.auth.signOut();
+                        const message = profile?.status === 'Banned' 
+                            ? 'Your account has been suspended. Please contact support.' 
+                            : 'Your account is pending administrator approval. You will be notified via email once approved.';
+                        throw new Error(message);
+                    }
+
                     setSession(data.session);
                     navigate('/dashboard');
                 }
             } else {
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            full_name: fullName,
-                        },
-                        emailRedirectTo: `${window.location.origin}/reset-password`,
-                    },
+                // Call public-signup edge function to bypass email confirmation
+                const { data: signupData, error: signupError } = await supabase.functions.invoke('public-signup', {
+                    body: { email, password, fullName }
                 });
-                if (error) throw error;
 
-                // Set their profile status to Pending so they are forced to go through
-                // the /reset-password flow when they land after confirming their email.
-                if (data.user) {
-                    await supabase
-                        .from('profiles')
-                        .update({ status: 'Pending' })
-                        .eq('id', data.user.id);
+                if (signupError || signupData?.error) {
+                    throw new Error(signupError?.message || signupData?.error || 'Signup failed');
                 }
 
-                if (data.session) {
-                    // If email confirmation is disabled in Supabase, they get a session right away.
-                    // We can still redirect them to reset-password so they confirm their password.
-                    navigate('/reset-password');
-                } else {
-                    setSuccessMsg('Check your email for a confirmation link to complete your signup!');
+                if (signupData?.user) {
+                    setSuccessMsg('Registration successful! Your account is now pending administrator approval. You will receive an email once your access has been granted.');
+                    setEmail('');
+                    setPassword('');
+                    setFullName('');
                 }
             }
         } catch (err: any) {
