@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppContainer from '@/components/layout/AppContainer';
 import { Users, Mail, Download, Upload, FileText, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send, Database, Globe, Eye, HeartPulse, Activity, ShieldCheck, Type, FileSearch, Accessibility, XCircle, Clock, Zap, Award, Lock } from 'lucide-react';
@@ -8,6 +8,8 @@ import { toast } from 'sonner';
 import BulkEmailModal from '@/components/modals/BulkEmailModal';
 import AssignToCampaignModal from '@/components/modals/AssignToCampaignModal';
 import { Target } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const LeadsList = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -29,6 +31,8 @@ const LeadsList = () => {
     const [emailStatusMap, setEmailStatusMap] = useState<Record<string, { status: 'sent' | 'failed'; error?: string }>>({});
     const [showAssignModal, setShowAssignModal] = useState(false);
     const [leadsToAssign, setLeadsToAssign] = useState<Lead[]>([]);
+    const [isAuditingBulk, setIsAuditingBulk] = useState(false);
+    const [bulkAuditProgress, setBulkAuditProgress] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [companyFilter, setCompanyFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
@@ -184,7 +188,9 @@ const LeadsList = () => {
         if (itemsToExport.length === 0) return;
         
         const headers = [
-            'First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created',
+            'First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 
+            'Audit Score', 'Performance', 'SEO', 'Accessibility', 'Best Practices', 'SSL Enabled', 'Mobile Friendly',
+            'Source', 'Date Created',
             'Phone', 'Website', 'LinkedIn', 'Facebook', 'Twitter', 'Instagram', 'YouTube', 'Pinterest', 'Snapchat', 
             'WhatsApp', 'TikTok', 'Telegram', 'Skype', 'Contact Page', 'About Page',
             'Logo URL', 'Description', 'Founded Year', 'Technographics', 'Meta Title', 'Meta Description', 'Keywords', 'Language', 'Career Page', 'Open Positions'
@@ -197,6 +203,13 @@ const LeadsList = () => {
             lead.status || 'new',
             lead.industry || '',
             lead.icp_score || '0',
+            lead.audit_score ?? 'N/A',
+            lead.lighthouse_performance ?? 'N/A',
+            lead.lighthouse_seo ?? 'N/A',
+            lead.lighthouse_accessibility ?? 'N/A',
+            lead.lighthouse_best_practices ?? 'N/A',
+            lead.ssl_enabled ? 'Yes' : 'No',
+            lead.mobile_friendly ? 'Yes' : 'No',
             lead.source || 'scraper',
             lead.created_at || '',
             lead.phone || '',
@@ -415,6 +428,90 @@ const LeadsList = () => {
         reader.readAsText(file);
     };
 
+    const handleGeneratePDF = (lead: Lead) => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        
+        // Header
+        doc.setFillColor(27, 87, 177); // #1b57b1
+        doc.rect(0, 0, pageWidth, 40, 'F');
+        
+        doc.setTextColor(255, 255, 255);
+        doc.setFontSize(22);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Website Health Audit', 15, 25);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth - 55, 25);
+
+        // Lead Info
+        doc.setTextColor(33, 33, 33);
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`${lead.company || lead.first_name + ' ' + lead.last_name} - Assessment`, 15, 55);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Contact: ${lead.first_name} ${lead.last_name}`, 15, 65);
+        doc.text(`Email: ${lead.email}`, 15, 70);
+        doc.text(`Website: ${lead.company_website || lead.source_url || 'N/A'}`, 15, 75);
+
+        // Metric mapping
+        const scoresData = [
+            ['Overall Health Score', `${lead.audit_score || 0}/100`],
+            ['Core Performance', `${lead.lighthouse_performance || 0}%`],
+            ['Search Optimization (SEO)', `${lead.lighthouse_seo || 0}%`],
+            ['Accessibility Compliance', `${lead.lighthouse_accessibility || 0}%`],
+            ['Web Best Practices', `${lead.lighthouse_best_practices || 0}%`],
+            ['Security (SSL/HTTPS)', lead.ssl_enabled ? 'Active' : 'Missing'],
+            ['Mobile Optimization', lead.mobile_friendly ? 'Optimized' : 'Not Responsive']
+        ];
+
+        autoTable(doc, {
+            startY: 85,
+            head: [['Audit Metric', 'Optimization Level']],
+            body: scoresData,
+            theme: 'grid',
+            headStyles: { fillColor: [27, 87, 177], fontStyle: 'bold' },
+            styles: { fontSize: 9, cellPadding: 4 }
+        });
+
+        // Recommendations
+        let y = (doc as any).lastAutoTable?.finalY || 150;
+        y += 15;
+        doc.setFontSize(14);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Strategic Recommendations', 15, y);
+        
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        y += 10;
+        
+        const recommendations = [];
+        if ((lead.lighthouse_performance || 0) < 80) recommendations.push("• Optimize core web vitals and image compression for faster load times.");
+        if (!lead.ssl_enabled) recommendations.push("• CRITICAL: Secure your domain with an SSL certificate to protect user data.");
+        if (!lead.mobile_friendly) recommendations.push("• Implement responsive design to capture mobile traffic effectively.");
+        if ((lead.lighthouse_seo || 0) < 80) recommendations.push("• Enhance on-page SEO structure (H1 tags, Meta Descriptions) for better rankings.");
+        if (recommendations.length === 0) recommendations.push("• Site is currently high-performing. Continue regular monitoring for regressions.");
+
+        recommendations.forEach(rec => {
+            if (y > 270) { doc.addPage(); y = 20; }
+            doc.text(rec, 15, y);
+            y += 8;
+        });
+
+        // Footer
+        const pageHeight = doc.internal.pageSize.getHeight();
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text('This report was generated by Stitch AI Leads Scraper. Data is based on real-time website analysis.', 15, pageHeight - 10);
+
+        const fileName = (lead.company || lead.first_name || 'Lead').replace(/\s+/g, '_');
+        doc.save(`Audit_Report_${fileName}.pdf`);
+        toast.success('Professional PDF Report ready!');
+    };
+            
     const handleDownloadSampleCSV = () => {
         const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created'];
         const sampleData = ['John', 'Doe', 'john.doe@example.com', 'Example Corp', 'New', 'Technology', '85', 'csv', new Date().toISOString().split('T')[0]];
@@ -526,6 +623,73 @@ const LeadsList = () => {
             toast.error(`Audit failed: ${err.message}`, { id: toastId });
         }
     };
+    const handleBulkAudit = async () => {
+        if (!user || selectedRows.length === 0) return;
+        
+        const leadsToAudit = leads.filter(l => selectedRows.includes(l.id) && (l.company_website || l.source_url));
+        
+        if (leadsToAudit.length === 0) {
+            toast.error('None of the selected leads have a valid website URL.');
+            return;
+        }
+
+        setIsAuditingBulk(true);
+        setBulkAuditProgress(0);
+        const toastId = toast.loading(`Initiating bulk audit for ${leadsToAudit.length} leads...`);
+        
+        let completed = 0;
+        const total = leadsToAudit.length;
+        const batchSize = 3;
+
+        // Clone current leads to avoid closure issues with setLeads in loops
+        let currentLeads = [...leads];
+
+        for (let i = 0; i < leadsToAudit.length; i += batchSize) {
+            const batch = leadsToAudit.slice(i, i + batchSize);
+            
+            await Promise.all(batch.map(async (lead) => {
+                const url = lead.company_website || lead.source_url;
+                try {
+                    const { data, error } = await supabase.functions.invoke('audit-lead', {
+                        body: { leadId: lead.id, url, userId: user.id }
+                    });
+
+                    if (!error && data?.success) {
+                        const auditData = data.data;
+                        currentLeads = currentLeads.map(l => 
+                            l.id === lead.id ? { 
+                                ...l, 
+                                audit_score: auditData.score,
+                                lighthouse_performance: auditData.lighthouse_performance,
+                                lighthouse_accessibility: auditData.lighthouse_accessibility,
+                                lighthouse_best_practices: auditData.lighthouse_best_practices,
+                                lighthouse_seo: auditData.lighthouse_seo,
+                                load_time_ms: auditData.load_time_ms,
+                                ssl_enabled: auditData.ssl_enabled,
+                                mobile_friendly: auditData.mobile_friendly,
+                                audit_data: auditData.audit_data
+                            } : l
+                        );
+                    }
+                } catch (err) {
+                    console.error(`Bulk audit failed for lead ${lead.id}:`, err);
+                } finally {
+                    completed++;
+                    const progress = Math.round((completed / total) * 100);
+                    setBulkAuditProgress(progress);
+                    toast.loading(`Auditing... ${progress}% (${completed}/${total})`, { id: toastId });
+                }
+            }));
+
+            // Intermediate state update after each batch to show progress in UI
+            setLeads(currentLeads);
+        }
+
+        toast.success(`Bulk audit finished! ${completed} leads processed.`, { id: toastId });
+        setIsAuditingBulk(false);
+        setBulkAuditProgress(0);
+        setSelectedRows([]);
+    };
 
     const handleUpdateLead = async (updatedLead: Partial<Lead>) => {
         if (!editingLead) return;
@@ -604,9 +768,101 @@ const LeadsList = () => {
             return 0;
         });
 
+    const auditStats = useMemo(() => {
+        const auditedLeads = filteredLeads.filter(l => l.audit_score !== undefined && l.audit_score !== null);
+        if (auditedLeads.length === 0) return null;
+
+        const total = auditedLeads.length;
+        const sum = (acc: number, val: number | undefined | null) => acc + (val || 0);
+        
+        return {
+            avgScore: Math.round(auditedLeads.reduce((acc, l) => sum(acc, l.audit_score), 0) / total),
+            avgPerf: Math.round(auditedLeads.reduce((acc, l) => sum(acc, l.lighthouse_performance), 0) / total),
+            avgSEO: Math.round(auditedLeads.reduce((acc, l) => sum(acc, l.lighthouse_seo), 0) / total),
+            avgAcc: Math.round(auditedLeads.reduce((acc, l) => sum(acc, l.lighthouse_accessibility), 0) / total),
+            avgBest: Math.round(auditedLeads.reduce((acc, l) => sum(acc, l.lighthouse_best_practices), 0) / total),
+            sslEnabledRate: Math.round((auditedLeads.filter(l => l.ssl_enabled).length / total) * 100),
+            mobileFriendlyRate: Math.round((auditedLeads.filter(l => l.mobile_friendly).length / total) * 100),
+            total
+        };
+    }, [filteredLeads]);
+
     return (
         <AppContainer title="Leads List">
             <div className="flex flex-col gap-6">
+                {/* Health Overview Dashboard */}
+                {auditStats && (
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="p-2 bg-blue-50 rounded-lg text-blue-600">
+                                    <Activity size={20} />
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Health Score</span>
+                            </div>
+                            <div>
+                                <div className="text-2xl font-bold text-slate-900">{auditStats.avgScore}/100</div>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500" style={{ width: `${auditStats.avgScore}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="p-2 bg-emerald-50 rounded-lg text-emerald-600">
+                                    <Zap size={20} />
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg Performance</span>
+                            </div>
+                            <div>
+                                <div className="text-2xl font-bold text-slate-900">{auditStats.avgPerf}%</div>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500" style={{ width: `${auditStats.avgPerf}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                                    <Search size={20} />
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Avg SEO Score</span>
+                            </div>
+                            <div>
+                                <div className="text-2xl font-bold text-slate-900">{auditStats.avgSEO}%</div>
+                                <div className="flex items-center gap-1.5 mt-1">
+                                    <div className="h-1.5 flex-1 bg-slate-100 rounded-full overflow-hidden">
+                                        <div className="h-full bg-purple-500" style={{ width: `${auditStats.avgSEO}%` }} />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col gap-3">
+                            <div className="flex items-center justify-between">
+                                <div className="p-2 bg-orange-50 rounded-lg text-orange-600">
+                                    <ShieldCheck size={20} />
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Security Mix</span>
+                            </div>
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                                    <span>SSL Ready</span>
+                                    <span className="text-slate-900">{auditStats.sslEnabledRate}%</span>
+                                </div>
+                                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                                    <div className="h-full bg-orange-500" style={{ width: `${auditStats.sslEnabledRate}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 {/* Header Section */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center bg-white p-6 rounded-2xl border border-slate-200 shadow-sm gap-4">
                     <div className="flex items-center gap-4">
@@ -710,17 +966,36 @@ const LeadsList = () => {
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
                             {selectedRows.length > 0 && (
-                                <button
-                                    onClick={() => {
-                                        const selectedLeads = leads.filter(l => selectedRows.includes(l.id));
-                                        setLeadsToAssign(selectedLeads);
-                                        setShowAssignModal(true);
-                                    }}
-                                    className="flex items-center gap-2 px-4 py-2 bg-[#1b57b1]/5 border border-[#1b57b1] text-[#1b57b1] rounded-xl text-sm font-bold hover:bg-[#1b57b1]/10 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300"
-                                >
-                                    <Target size={18} />
-                                    Assign to Campaign ({selectedRows.length})
-                                </button>
+                                <>
+                                    <button
+                                        onClick={handleBulkAudit}
+                                        disabled={isAuditingBulk}
+                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300 disabled:opacity-50"
+                                    >
+                                        {isAuditingBulk ? (
+                                            <>
+                                                <Loader2 className="animate-spin text-blue-500" size={16} />
+                                                <span>Auditing {bulkAuditProgress}%</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Activity size={18} />
+                                                <span>Audit Selected</span>
+                                            </>
+                                        )}
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            const selectedLeads = leads.filter(l => selectedRows.includes(l.id));
+                                            setLeadsToAssign(selectedLeads);
+                                            setShowAssignModal(true);
+                                        }}
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#1b57b1]/5 border border-[#1b57b1] text-[#1b57b1] rounded-xl text-sm font-bold hover:bg-[#1b57b1]/10 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300"
+                                    >
+                                        <Target size={18} />
+                                        Assign to Campaign ({selectedRows.length})
+                                    </button>
+                                </>
                             )}
                             {/* Company Filter */}
                             <div className="relative">
@@ -1478,6 +1753,15 @@ const LeadsList = () => {
                                                     <Globe size={20} />
                                                 </a>
                                             )}
+                                        </div>
+                                        <div className="pt-4 mt-2 border-t border-slate-100">
+                                            <button 
+                                                onClick={() => handleGeneratePDF(viewingLead)}
+                                                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-[#1b57b1] text-white rounded-xl text-xs font-bold hover:bg-[#1b57b1]/90 transition-all shadow-sm cursor-pointer"
+                                            >
+                                                <FileText size={14} />
+                                                Generate PDF Report
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

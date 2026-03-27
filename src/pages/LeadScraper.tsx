@@ -14,6 +14,7 @@ const LeadScraper = () => {
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+    const [autoAudit, setAutoAudit] = useState(true);
 
     const navigate = useNavigate();
     const { user, campaigns, addLead, updateCampaign, setUser } = useStore();
@@ -152,6 +153,24 @@ const LeadScraper = () => {
                             campaignId: selectedCampaignId
                         }
                     });
+
+                    // AUTO-AUDIT LOGIC
+                    if (autoAudit) {
+                        const leadsToAudit = data.leads.filter((l: any) => l.company_website || l.source_url);
+                        if (leadsToAudit.length > 0) {
+                            toast.info(`Auto-auditing ${leadsToAudit.length} new leads...`, { id: 'audit-info' });
+                            // Trigger audits in background (non-blocking)
+                            leadsToAudit.forEach((lead: any) => {
+                                supabase.functions.invoke('audit-lead', {
+                                    body: { 
+                                        leadId: lead.id, 
+                                        url: lead.company_website || lead.source_url, 
+                                        userId: user.id 
+                                    }
+                                }).catch(err => console.error(`Auto-audit failed for ${lead.id}:`, err));
+                            });
+                        }
+                    }
                 }
             } else {
                 setError(data?.error || 'Failed to extract leads.');
@@ -237,6 +256,20 @@ const LeadScraper = () => {
                             </button>
                         </div>
                     )}
+
+                    <div className="flex items-center gap-2 pb-2">
+                        <input
+                            type="checkbox"
+                            id="autoAudit"
+                            checked={autoAudit}
+                            onChange={(e) => setAutoAudit(e.target.checked)}
+                            className="w-4 h-4 text-[#1b57b1] border-slate-300 rounded focus:ring-[#1b57b1] cursor-pointer"
+                        />
+                        <label htmlFor="autoAudit" className="text-sm font-semibold text-slate-700 cursor-pointer flex items-center gap-2">
+                            Auto-run Website Audit
+                            <span className="text-[10px] bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full uppercase tracking-wider">Recommended</span>
+                        </label>
+                    </div>
 
                     <div className="flex flex-col sm:flex-row gap-3 md:gap-4">
                         <button 
