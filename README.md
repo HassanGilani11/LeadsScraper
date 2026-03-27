@@ -12,6 +12,8 @@
 -   📊 **Smart Leads Management**: High-performance interactive table featuring **Sticky Columns**, fluid horizontal scrolling, and a comprehensive details view for **25+ Data Points**.
 -   📧 **Bulk Email & Personalization**: Integrated rich-text editor (Tiptap) with automated **Merge Tags** and real-time delivery tracking via SMTP.
 -   🏷️ **Social Discovery**: Automated discovery of LinkedIn, Twitter, Facebook, and Instagram profiles for every extracted lead.
+-   ⚖️ **Public Legal Infrastructure**: Dedicated, brand-consistent **Privacy Policy**, **Terms of Service**, and **Contact** pages with global routing and unified footer.
+-   📩 **Unified Contact System**: Integrated contact form with automated **SMTP Database Logging** and a dedicated **Admin Enquiry Inbox**.
 -   🛠️ **Professional UI Architecture**: Standardized stacking context with **z-[9999] layer isolation** for all modals, ensuring a flicker-free, overlap-proof administrative experience.
 
 ## 🛠️ Tech Stack
@@ -72,6 +74,7 @@ supabase functions deploy create-checkout-session
 supabase functions deploy verify-payment
 supabase functions deploy admin-create-user
 supabase functions deploy send-bulk-email
+supabase functions deploy contact-form
 
 # Set secrets
 supabase secrets set GEMINI_API_KEY=your_key
@@ -88,7 +91,7 @@ supabase secrets set SMTP_PASS=your_pass
 supabase secrets set SMTP_FROM_NAME=your_name
 
 # Database Migrations
-# Ensure you run the audit_logs migration for the dashboard to function
+# Ensure you run the contact_enquiries migration for the enquiry inbox to function
 supabase migration up 
 ```
 
