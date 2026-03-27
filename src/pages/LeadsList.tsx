@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import AppContainer from '@/components/layout/AppContainer';
-import { Users, Mail, Download, Upload, FileText, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send, Database, Globe, Eye } from 'lucide-react';
+import { Users, Mail, Download, Upload, FileText, Search, ChevronDown, CheckCircle2, Circle, Loader2, Trash2, Edit2, X, ArrowLeft, Copy, MoreVertical, Send, Database, Globe, Eye, HeartPulse, Activity, ShieldCheck, Type, FileSearch, Accessibility, XCircle, Clock, Zap, Award, Lock } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { useStore, Lead } from '@/store/useStore';
 import { toast } from 'sonner';
@@ -102,15 +102,46 @@ const LeadsList = () => {
                 query = query.lte('icp_score', parseInt(maxScore));
             }
 
-            const { data, error } = await query.order('created_at', { ascending: false });
+            const { data, error } = await query
+                .select(`
+                    *,
+                    lead_audits (
+                        score,
+                        lighthouse_performance,
+                        lighthouse_accessibility,
+                        lighthouse_best_practices,
+                        lighthouse_seo,
+                        ssl_enabled,
+                        mobile_friendly,
+                        audit_data,
+                        created_at
+                    )
+                `)
+                .order('created_at', { ascending: false });
 
             if (error) throw error;
             
-            // Format dates
-            const formattedLeads = data?.map(lead => ({
-                ...lead,
-                created_at: new Date(lead.created_at).toISOString().split('T')[0]
-            })) || [];
+            // Format dates and attach latest audit score
+            const formattedLeads = data?.map(lead => {
+                const audits = (lead.lead_audits as any[]) || [];
+                const latestAudit = audits.sort((a, b) => 
+                    new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+                )[0];
+
+                return {
+                    ...lead,
+                    created_at: new Date(lead.created_at).toISOString().split('T')[0],
+                    audit_score: latestAudit?.score !== undefined ? latestAudit.score : null,
+                    lighthouse_performance: latestAudit?.lighthouse_performance !== undefined ? latestAudit.lighthouse_performance : null,
+                    lighthouse_accessibility: latestAudit?.lighthouse_accessibility !== undefined ? latestAudit.lighthouse_accessibility : null,
+                    lighthouse_best_practices: latestAudit?.lighthouse_best_practices !== undefined ? latestAudit.lighthouse_best_practices : null,
+                    lighthouse_seo: latestAudit?.lighthouse_seo !== undefined ? latestAudit.lighthouse_seo : null,
+                    load_time_ms: latestAudit?.load_time_ms !== undefined ? latestAudit.load_time_ms : null,
+                    ssl_enabled: latestAudit?.ssl_enabled !== undefined ? latestAudit.ssl_enabled : null,
+                    mobile_friendly: latestAudit?.mobile_friendly !== undefined ? latestAudit.mobile_friendly : null,
+                    audit_data: latestAudit?.audit_data || null
+                };
+            }) || [];
             
             setLeads(formattedLeads);
         } catch (error) {
@@ -454,6 +485,48 @@ const LeadsList = () => {
         }
     };
 
+    const handleAuditLead = async (lead: Lead) => {
+        if (!user || !lead.company_website && !lead.source_url) {
+            toast.error('Website URL is required to run an audit');
+            return;
+        }
+
+        const url = lead.company_website || lead.source_url;
+        const toastId = toast.loading(`Auditing ${url}...`);
+        
+        try {
+            const { data, error } = await supabase.functions.invoke('audit-lead', {
+                body: { leadId: lead.id, url, userId: user.id }
+            });
+
+            if (error) throw error;
+
+            if (data.success) {
+                toast.success('Audit completed successfully!', { id: toastId });
+                // Update local state
+                setLeads(leads.map(l => 
+                    l.id === lead.id ? { 
+                        ...l, 
+                        audit_score: data.data.score,
+                        lighthouse_performance: data.data.lighthouse_performance,
+                        lighthouse_accessibility: data.data.lighthouse_accessibility,
+                        lighthouse_best_practices: data.data.lighthouse_best_practices,
+                        lighthouse_seo: data.data.lighthouse_seo,
+                        load_time_ms: data.data.load_time_ms,
+                        ssl_enabled: data.data.ssl_enabled,
+                        mobile_friendly: data.data.mobile_friendly,
+                        audit_data: data.data.audit_data
+                    } : l
+                ));
+            } else {
+                throw new Error(data.error || 'Audit failed');
+            }
+        } catch (err: any) {
+            console.error('Audit Error:', err);
+            toast.error(`Audit failed: ${err.message}`, { id: toastId });
+        }
+    };
+
     const handleUpdateLead = async (updatedLead: Partial<Lead>) => {
         if (!editingLead) return;
         
@@ -713,6 +786,7 @@ const LeadsList = () => {
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Industry</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">ICP</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">Site Health</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Tech Stack</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Founded</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
@@ -811,6 +885,37 @@ const LeadsList = () => {
                                                     {lead.icp_score || 0}%
                                                 </span>
                                             </td>
+                                            <td className="p-4 text-center">
+                                                {lead.audit_score !== null && lead.audit_score !== undefined ? (
+                                                    <div className="flex flex-col items-center gap-1">
+                                                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold ${
+                                                            lead.audit_score >= 80 ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                                            lead.audit_score >= 50 ? 'bg-orange-50 text-orange-700 border border-orange-100' :
+                                                            'bg-red-50 text-red-700 border border-red-100'
+                                                        }`}>
+                                                            {lead.audit_score}/100
+                                                        </span>
+                                                        <div className="w-12 h-1 bg-slate-100 rounded-full overflow-hidden">
+                                                            <div 
+                                                                className={`h-full rounded-full ${
+                                                                    lead.audit_score >= 80 ? 'bg-emerald-500' :
+                                                                    lead.audit_score >= 50 ? 'bg-orange-500' :
+                                                                    'bg-red-500'
+                                                                }`}
+                                                                style={{ width: `${lead.audit_score}%` }}
+                                                            ></div>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <button 
+                                                        onClick={(e) => { e.stopPropagation(); handleAuditLead(lead); }}
+                                                        className="text-[10px] font-bold text-[#1b57b1] hover:underline cursor-pointer flex items-center justify-center gap-1 mx-auto"
+                                                    >
+                                                        <HeartPulse size={12} />
+                                                        Audit
+                                                    </button>
+                                                )}
+                                            </td>
                                             <td className="p-4">
                                                 <div className="max-w-[180px] flex flex-wrap gap-1">
                                                     {lead.technographics && lead.technographics.length > 0 ? (
@@ -907,6 +1012,14 @@ const LeadsList = () => {
                                                                 >
                                                                     <Mail size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
                                                                     Add to Bulk Email
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => { handleAuditLead(lead); setDropdownOpenId(null); }}
+                                                                    className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                                >
+                                                                    <HeartPulse size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                    Audit Website
                                                                 </button>
                                                             </div>
 
@@ -1421,6 +1534,121 @@ const LeadsList = () => {
                                         </div>
                                     </div>
                                 </div>
+
+                                {/* Website Audit Card (New) */}
+                                {viewingLead.audit_score !== null && (
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-2 text-blue-600">
+                                            <Activity size={16} />
+                                            <h4 className="text-xs font-bold uppercase tracking-widest">Website Audit</h4>
+                                        </div>
+                                        <div className="bg-blue-50/50 rounded-2xl p-5 border border-blue-100">
+                                            <div className="flex items-center justify-between mb-4">
+                                                <div className="flex flex-col">
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Overall Health</p>
+                                                    <p className="text-[10px] text-slate-500 italic">Advanced Audit Score</p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className={`text-lg font-bold ${
+                                                        (viewingLead.audit_score ?? 0) >= 80 ? 'text-emerald-600' :
+                                                        (viewingLead.audit_score ?? 0) >= 50 ? 'text-orange-600' : 'text-red-600'
+                                                    }`}>
+                                                        {viewingLead.audit_score}/100
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="h-2 bg-slate-200 rounded-full overflow-hidden mb-6">
+                                                <div 
+                                                    className={`h-full ${
+                                                        (viewingLead.audit_score ?? 0) >= 80 ? 'bg-emerald-500' :
+                                                        (viewingLead.audit_score ?? 0) >= 50 ? 'bg-orange-500' : 'bg-red-500'
+                                                    }`}
+                                                    style={{ width: `${viewingLead.audit_score}%` }}
+                                                ></div>
+                                            </div>
+
+                                            {/* Lighthouse Scores Section */}
+                                            {viewingLead.lighthouse_performance !== null && (
+                                                <div className="grid grid-cols-4 gap-2 py-4 border-b border-blue-100/50">
+                                                    <div className="flex flex-col items-center text-center gap-1">
+                                                        <div className={`p-2 rounded-lg ${(viewingLead.lighthouse_performance ?? 0) >= 90 ? 'bg-emerald-100 text-emerald-600' : (viewingLead.lighthouse_performance ?? 0) >= 50 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
+                                                            <Zap size={14} />
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Perf</span>
+                                                        <span className="text-xs font-bold text-slate-700">{viewingLead.lighthouse_performance}</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-center text-center gap-1">
+                                                        <div className={`p-2 rounded-lg ${(viewingLead.lighthouse_accessibility ?? 0) >= 90 ? 'bg-emerald-100 text-emerald-600' : (viewingLead.lighthouse_accessibility ?? 0) >= 50 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
+                                                            <Accessibility size={14} />
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Access</span>
+                                                        <span className="text-xs font-bold text-slate-700">{viewingLead.lighthouse_accessibility}</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-center text-center gap-1">
+                                                        <div className={`p-2 rounded-lg ${(viewingLead.lighthouse_best_practices ?? 0) >= 90 ? 'bg-emerald-100 text-emerald-600' : (viewingLead.lighthouse_best_practices ?? 0) >= 50 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
+                                                            <Award size={14} />
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">Best</span>
+                                                        <span className="text-xs font-bold text-slate-700">{viewingLead.lighthouse_best_practices}</span>
+                                                    </div>
+                                                    <div className="flex flex-col items-center text-center gap-1">
+                                                        <div className={`p-2 rounded-lg ${(viewingLead.lighthouse_seo ?? 0) >= 90 ? 'bg-emerald-100 text-emerald-600' : (viewingLead.lighthouse_seo ?? 0) >= 50 ? 'bg-orange-100 text-orange-600' : 'bg-red-100 text-red-600'}`}>
+                                                            <Search size={14} />
+                                                        </div>
+                                                        <span className="text-[9px] font-bold text-slate-500 uppercase">SEO</span>
+                                                        <span className="text-xs font-bold text-slate-700">{viewingLead.lighthouse_seo}</span>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Detailed Checks Grid */}
+                                            <div className="grid grid-cols-2 gap-4 mt-4">
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    {viewingLead.ssl_enabled ? <ShieldCheck className="text-emerald-500" size={14} /> : <XCircle className="text-red-500" size={14} />}
+                                                    <span className="text-xs">SSL Status</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    {(viewingLead.audit_data?.securityHeaders?.csp || viewingLead.audit_data?.securityHeaders?.xfo) ? <Lock className="text-emerald-500" size={14} /> : <XCircle className="text-orange-500" size={14} />}
+                                                    <span className="text-xs">Header Defense</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    {viewingLead.audit_data?.hasH1 ? <Type className="text-emerald-500" size={14} /> : <XCircle className="text-orange-500" size={14} />}
+                                                    <span className="text-xs">SEO Structure</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    {viewingLead.audit_data?.hasMetaDescription ? <FileSearch className="text-emerald-500" size={14} /> : <XCircle className="text-orange-500" size={14} />}
+                                                    <span className="text-xs">Meta Optimized</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    {(viewingLead.audit_data?.imgCount > 0 && viewingLead.audit_data?.missingAltTagsCount === 0) || (viewingLead.audit_data?.imgCount === 0) || (viewingLead.lighthouse_accessibility ?? 0) >= 90 ? <Accessibility className="text-emerald-500" size={14} /> : <XCircle className="text-orange-500" size={14} />}
+                                                    <span className="text-xs">Accessibility</span>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-slate-600">
+                                                    {viewingLead.mobile_friendly ? <Globe className="text-emerald-500" size={14} /> : <XCircle className="text-red-500" size={14} />}
+                                                    <span className="text-xs">Mobile Ready</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="mt-4 pt-4 border-t border-blue-100/30 grid grid-cols-2 gap-4">
+                                                <div className="flex items-center gap-2">
+                                                    <Clock className={(viewingLead.load_time_ms || 0) < 3000 ? "text-emerald-500" : "text-orange-500"} size={14} />
+                                                    <span className="text-[10px] font-bold text-slate-500 uppercase">Load Speed:</span>
+                                                    <span className="text-xs font-bold text-slate-700">
+                                                        {viewingLead.load_time_ms ? `${(viewingLead.load_time_ms / 1000).toFixed(1)}s` : 'N/A'}
+                                                    </span>
+                                                </div>
+                                                {viewingLead.audit_data?.broken_links_count !== undefined && (
+                                                    <div className="flex items-center gap-2">
+                                                        <Activity className={viewingLead.audit_data.broken_links_count === 0 ? "text-emerald-500" : "text-red-500"} size={14} />
+                                                        <span className="text-[10px] font-bold text-slate-500 uppercase">Broken Links:</span>
+                                                        <span className="text-xs font-bold text-slate-700">{viewingLead.audit_data.broken_links_count}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             {/* Full Width Sections */}

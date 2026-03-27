@@ -39,6 +39,7 @@ export interface Lead {
     icp_score?: number;
     industry?: string;
     source?: string;
+    source_url?: string;
     job_title?: string;
     linkedin_url?: string;
     phone?: string;
@@ -67,6 +68,16 @@ export interface Lead {
     website_language?: string;
     career_page_url?: string;
     open_positions_count?: number;
+    audit_score?: number;
+    audit_status?: 'pending' | 'completed' | 'failed';
+    audit_data?: any;
+    lighthouse_performance?: number;
+    lighthouse_accessibility?: number;
+    lighthouse_best_practices?: number;
+    lighthouse_seo?: number;
+    load_time_ms?: number;
+    ssl_enabled?: boolean;
+    mobile_friendly?: boolean;
 }
 
 export interface Notification {
