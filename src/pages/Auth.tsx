@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
 import { Mail, Lock, User, ArrowRight, Loader2, Sparkles, ArrowLeft } from 'lucide-react';
@@ -15,7 +15,17 @@ const Auth = () => {
     const [successMsg, setSuccessMsg] = useState<string | null>(null);
     
     const navigate = useNavigate();
+    const location = useLocation();
     const setSession = useStore((state) => state.setSession);
+
+    // Get message from navigation state (e.g., from ResetPassword)
+    React.useEffect(() => {
+        if (location.state?.message) {
+            setSuccessMsg(location.state.message);
+            // Clear state so message doesn't persist on refresh
+            window.history.replaceState({}, document.title);
+        }
+    }, [location.state]);
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();

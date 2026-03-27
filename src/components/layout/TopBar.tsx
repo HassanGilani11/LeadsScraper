@@ -244,7 +244,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                         className={`flex items-center gap-3 cursor-pointer p-1.5 rounded-full transition-all ${dropdownOpen ? 'bg-slate-100 ring-2 ring-[#1b57b1]/20' : 'hover:bg-slate-50'}`}
                     >
                         <div className="hidden lg:block text-right">
-                            <p className="text-sm font-bold leading-tight text-slate-900">{user?.full_name || 'Loading...'}</p>
+                            <p className="text-sm font-bold leading-tight text-slate-900">{user?.full_name || session?.user?.email?.split('@')[0] || 'User'}</p>
                             <p className="text-[10px] font-bold text-[#1b57b1] bg-[#1b57b1]/10 px-1.5 py-0.5 rounded-md uppercase tracking-wide inline-block mt-0.5">{user?.role || 'Member'}</p>
                         </div>
                         <div
@@ -253,7 +253,9 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                             {user?.avatar_url ? (
                                 <img src={user.avatar_url} alt="User Avatar" className="w-full h-full object-cover" />
                             ) : (
-                                user?.full_name ? user.full_name.split(' ').map(n => n[0]).join('') : '?'
+                                user?.full_name 
+                                    ? user.full_name.split(' ').map(n => n[0]).join('') 
+                                    : (session?.user?.email?.charAt(0).toUpperCase() || '?')
                             )}
                         </div>
                     </div>
@@ -270,7 +272,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                                     )}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-bold text-slate-900 truncate">{user?.full_name || 'Loading...'}</p>
+                                    <p className="text-sm font-bold text-slate-900 truncate">{user?.full_name || session?.user?.email?.split('@')[0] || 'User'}</p>
                                     <p className="text-[10px] text-slate-500 font-medium truncate">{session?.user?.email || ''}</p>
                                 </div>
                             </div>

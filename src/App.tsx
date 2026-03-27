@@ -114,37 +114,22 @@ const App = () => {
             if (error) throw error;
 
             if (campaigns && campaigns.length > 0) {
-                const campaignIds = campaigns.map((c: any) => c.id);
-
-                // Fetch all leads for this user's campaigns in one query
-                const { data: leadsData, error: leadsError } = await supabase
-                    .from('leads')
-                    .select('id, campaign_id')
-                    .in('campaign_id', campaignIds);
-
-                if (leadsError) {
-                    console.error('Error fetching leads for campaigns:', leadsError);
-                }
-
-                console.log('Leads fetched for campaigns:', leadsData);
-
-                // Build a count map from the fetched leads
-                const countMap: Record<string, number> = {};
-                if (leadsData) {
-                    leadsData.forEach((lead: { id: string; campaign_id: string }) => {
-                        if (lead.campaign_id) {
-                            countMap[lead.campaign_id] = (countMap[lead.campaign_id] || 0) + 1;
-                        }
-                    });
-                }
-
-                console.log('Lead count map:', countMap);
-
-                const campaignsWithCounts = campaigns.map((camp: any) => ({
-                    ...camp,
-                    leads: countMap[camp.id] ?? 0,
-                    tags: camp.target_keywords || []
+                // Fetch counts for each campaign efficiently using count-only queries
+                const campaignsWithCounts = await Promise.all(campaigns.map(async (camp: any) => {
+                    const { count, error: countError } = await supabase
+                        .from('leads')
+                        .select('*', { count: 'exact', head: true })
+                        .eq('campaign_id', camp.id);
+                    
+                    if (countError) console.error(`Error counting leads for campaign ${camp.id}:`, countError);
+                    
+                    return {
+                        ...camp,
+                        leads: count ?? 0,
+                        tags: camp.target_keywords || []
+                    };
                 }));
+
                 setCampaigns(campaignsWithCounts);
             } else if (campaigns) {
                 setCampaigns([]);
@@ -207,6 +192,9 @@ const App = () => {
                     last_reset_date: needsReset ? now.toISOString() : data.last_reset_date,
                     status: data.status || 'Active',
                 });
+                
+                // Set loading to false as soon as we have the profile, then fetch campaigns in background
+                setLoading(false);
                 await fetchCampaigns(data.id);
             } else if (!error) {
                 // If profile doesn't exist, create a default one
@@ -236,11 +224,11 @@ const App = () => {
                     last_reset_date: newProfile.last_reset_date,
                     status: newProfile.status
                 });
+                setLoading(false);
                 await fetchCampaigns(newProfile.id);
             }
         } catch (err) {
             console.error('Error fetching profile:', err);
-        } finally {
             setLoading(false);
         }
     };

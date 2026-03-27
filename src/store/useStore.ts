@@ -116,7 +116,7 @@ export const useStore = create<AppState>((set) => ({
     session: null,
     user: null,
     siteSettings: null,
-    isLoading: false,
+    isLoading: true,
     campaigns: [],
     leads: [],
 

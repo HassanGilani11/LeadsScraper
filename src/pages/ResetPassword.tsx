@@ -12,7 +12,15 @@ const ResetPassword = () => {
     const [success, setSuccess] = useState(false);
     
     const navigate = useNavigate();
-    const { session, setSession } = useStore();
+    const { session, isLoading, setSession } = useStore();
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-slate-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1b57b1]"></div>
+            </div>
+        );
+    }
 
     // If there is no session, they shouldn't be here (recovery link provides a temporary session)
     if (!session) {
