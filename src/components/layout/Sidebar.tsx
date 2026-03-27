@@ -18,6 +18,7 @@ import {
     History,
     BarChart3,
     DollarSign,
+    Mail,
     X
 } from 'lucide-react';
 
@@ -177,6 +178,18 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                         >
                             <History size={20} />
                             <span>Audit Logs</span>
+                        </Link>
+                        <Link
+                            to="/admin/enquiries"
+                            className={`
+                                flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer mt-1
+                                ${pathname === '/admin/enquiries'
+                                    ? 'bg-[#1b57b1]/10 text-[#1b57b1]'
+                                    : 'text-slate-600 hover:bg-slate-100'}
+                            `}
+                        >
+                            <Mail size={20} />
+                            <span>Contact Enquiries</span>
                         </Link>
                     </div>
                 )}

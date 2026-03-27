@@ -20,6 +20,10 @@ import AuditLogs from '@/pages/admin/AuditLogs';
 import UsageAnalytics from '@/pages/admin/UsageAnalytics';
 import RevenueMetrics from '@/pages/admin/RevenueMetrics';
 import DataQuality from '@/pages/admin/DataQuality';
+import ContactEnquiries from '@/pages/admin/ContactEnquiries';
+import Privacy from '@/pages/Privacy';
+import Terms from '@/pages/Terms';
+import Contact from '@/pages/Contact';
 
 const App = () => {
     const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns, siteSettings, setSiteSettings } = useStore();
@@ -255,6 +259,10 @@ const App = () => {
                     } 
                 />
 
+                <Route path="/privacy" element={<Privacy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/contact" element={<Contact />} />
+
                 <Route 
                     path="/reset-password" 
                     element={
@@ -359,6 +367,14 @@ const App = () => {
                     element={
                         <ProtectedRoute>
                             {user?.role === 'Admin' ? <DataQuality /> : <Navigate to="/dashboard" replace />}
+                        </ProtectedRoute>
+                    } 
+                />
+                <Route 
+                    path="/admin/enquiries" 
+                    element={
+                        <ProtectedRoute>
+                            {user?.role === 'Admin' ? <ContactEnquiries /> : <Navigate to="/dashboard" replace />}
                         </ProtectedRoute>
                     } 
                 />

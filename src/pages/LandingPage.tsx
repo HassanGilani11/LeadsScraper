@@ -17,8 +17,15 @@ import {
     Map,
     XCircle,
     CheckCircle,
-    Mail
+    Mail,
+    FileText,
+    Activity,
+    FileSearch,
+    HeartPulse,
+    ShieldCheck,
+    ArrowLeft
 } from 'lucide-react';
+import LandingFooter from '@/components/layout/LandingFooter';
 
 const LandingPage = () => {
     const navigate = useNavigate();
@@ -89,8 +96,8 @@ const LandingPage = () => {
                         transition={{ delay: 0.3 }}
                         className="text-5xl md:text-7xl lg:text-8xl font-black text-slate-900 tracking-tight leading-[1.05] mb-8"
                     >
-                        Global Lead <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1b57b1] to-indigo-600">Intelligence Platform.</span>
+                        Lead Intelligence <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1b57b1] to-indigo-600">& Health Auditing.</span>
                     </motion.h1>
                     
                     <motion.p 
@@ -99,7 +106,7 @@ const LandingPage = () => {
                         transition={{ delay: 0.5 }}
                         className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-12 leading-relaxed"
                     >
-                        Leads Scraper v3 goes beyond simple emails. Capture 25+ deep data points including Technographics, Social Profiles, and AI-driven business insights.
+                        Leads Scraper v3 goes beyond simple extraction. Perform instant **Website Health Audits**, generate **White-Label PDF Reports**, and leverage AI-driven ICP scoring.
                     </motion.p>
                     
                     <motion.div 
@@ -219,11 +226,14 @@ const LandingPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {[
                             { icon: <Zap />, title: "Smart Data Extraction", description: "Extract precise business data from any website or directory with one click using our high-performance extraction engine." },
-                            { icon: <Shield />, title: "Deep Tech Scanning", description: "Automatically identify 50+ technology signatures including Shopify, Next.js, WordPress, and CRM stacks." },
-                            { icon: <BarChart3 />, title: "Sales Intelligence", description: "Monitor your growth trends and lead quality with our interactive, data-driven dashboard." },
+                            { icon: <Shield />, title: "Website Health Audit", description: "Instantly diagnostic SSL status, Performance, and SEO health. Audit leads automatically during extraction." },
+                            { icon: <FileText />, title: "Professional PDF Reports", description: "Generate beautiful, branded assessment reports for your leads with one click. Perfect for high-value outreach." },
                             { icon: <Linkedin />, title: "Social Discovery", description: "Automatically find LinkedIn profiles, Twitter handles, and Facebook pages for every extracted lead." },
-                            { icon: <Mail />, title: "Personalized Outreach", description: "Craft perfectly timed emails using our rich-text editor and automated merge tags for 1:1 personalization." },
-                            { icon: <CheckCircle2 />, title: "Real-time Enrichment", description: "Enrich existing leads with SEO meta tags, primary keywords, and employee counts instantly." }
+                            { icon: <Activity />, title: "AI-Driven ICP Scoring", description: "Stop guessing. Our AI engine scores every lead from 1-100 based on your ideal customer profile and web health." },
+                            { icon: <CheckCircle2 />, title: "Bulk & Auto-Auditing", description: "Process hundreds of leads at once or enable auto-auditing to enrich every new lead in the background." },
+                            { icon: <SearchCode />, title: "Technographic Profiling", description: "Identify 50+ technology signatures including Shopify, Next.js, WordPress, and CRM stacks automatically." },
+                            { icon: <ShieldCheck />, title: "Zero-Bounce Verification", description: "Leverage real-time email and data verification to ensure 100% deliverability for your outreach campaigns." },
+                            { icon: <Globe />, title: "Global Map Extraction", description: "Scale your local targeting. Extract leads from Google Maps and local directories across 120+ countries." }
                         ].map((feature, i) => (
                             <FeatureCard key={i} {...feature} delay={i * 0.1} />
                         ))}
@@ -270,20 +280,20 @@ const LandingPage = () => {
                             <div className="space-y-4">
                                 <SolutionItem 
                                     icon={<Database size={24} />}
-                                    title="Deep Business Intelligence"
-                                    description="Extract 25+ critical data points including SEO tags, primary keywords, and employee counts with real-time AI verification."
+                                    title="AI Lead Intelligence"
+                                    description="Extract 25+ critical data points plus automated Website Health Audits and ICP scoring for every lead."
                                     delay={0.3}
                                 />
                                 <SolutionItem 
-                                    icon={<SearchCode size={24} />}
-                                    title="Automated Technographics"
-                                    description="Identify 50+ technology signatures instantly. Know precisely which CMS, CRM, and Frameworks your leads are built on."
+                                    icon={<FileSearch size={24} />}
+                                    title="Automated Health Scanning"
+                                    description="Instantly identify SSL/Security risks and Lighthouse Performance gaps. Know your lead's digital presence better than they do."
                                     delay={0.4}
                                 />
                                 <SolutionItem 
                                     icon={<Zap size={24} />}
-                                    title="AI-Ready Personalization"
-                                    description="Fuel your outreach with 1:1 personalization tags and social profiles discovered across LinkedIn, Twitter, and more."
+                                    title="One-Click PDF Reports"
+                                    description="Transform audit data into professional white-label reports. Pitch with confidence using real-time data visual insights."
                                     delay={0.5}
                                 />
                             </div>
@@ -375,13 +385,25 @@ const LandingPage = () => {
                                     <ComparisonRow 
                                         feature="ICP Scoring"
                                         traditional="Subjective"
-                                        ours="Automated (1-10)"
+                                        ours="Automated (1-100)"
                                         isBetter
                                     />
                                     <ComparisonRow 
-                                        feature="Deliverability"
-                                        traditional="Frequent Bounces"
-                                        ours="Zero-Bounce Focus"
+                                        feature="Website Audits"
+                                        traditional="Manual Check"
+                                        ours="Instant SSL/SEO/Perf"
+                                        isBetter
+                                    />
+                                    <ComparisonRow 
+                                        feature="PDF Reports"
+                                        traditional="Manual Copy-Paste"
+                                        ours="One-Click Branded PDF"
+                                        isBetter
+                                    />
+                                    <ComparisonRow 
+                                        feature="Auto-Enrichment"
+                                        traditional="On-Demand Only"
+                                        ours="Background Auto-Audit"
                                         isBetter
                                     />
                                 </tbody>
@@ -413,7 +435,7 @@ const LandingPage = () => {
                             name="Pro"
                             price="19"
                             credits="100 Leads / Month"
-                            features={['Advanced AI Extract', 'Campaign Management', 'Technographics (50+)', 'Social Discovery', 'Personalized Email']}
+                            features={['Advanced AI Extract', 'Campaign Management', 'Website Health Audits', 'Social Discovery', 'Personalized Email']}
                             popular
                             buttonText="Upgrade to Pro"
                             onButtonClick={() => navigate('/auth')}
@@ -423,7 +445,7 @@ const LandingPage = () => {
                             name="Enterprise"
                             price="79"
                             credits="500 Leads / Month"
-                            features={['Bulk Scraping', 'Full Dashboard', 'Advanced Enrichment (25+)', 'Audit Logs & Team Seats', 'Priority Support']}
+                            features={['Bulk Scraping', 'Health Dashboard', 'Professional PDF Reports', 'Audit Logs & Team Seats', 'Priority Support']}
                             buttonText="Contact Sales"
                             onButtonClick={() => navigate('/auth')}
                             delay={0.3}
@@ -432,23 +454,7 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Footer */}
-            <footer className="py-12 bg-white border-t border-slate-200">
-                <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
-                    <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#1b57b1] rounded-lg flex items-center justify-center">
-                            <Layers className="text-white" size={18} />
-                        </div>
-                        <span className="text-xl font-black tracking-tight text-slate-900">Leads<span className="text-[#1b57b1]">Scraper</span></span>
-                    </div>
-                    <div className="flex gap-8 text-sm font-bold text-slate-500">
-                        <a href="#" className="hover:text-slate-900 transition-colors cursor-pointer">Privacy</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors cursor-pointer">Terms</a>
-                        <a href="#" className="hover:text-slate-900 transition-colors cursor-pointer">Contact</a>
-                    </div>
-                    <p className="text-sm text-slate-400 font-medium">&copy; 2026 Leads Scraper. Built for Growth.</p>
-                </div>
-            </footer>
+            <LandingFooter />
         </div>
     );
 };
