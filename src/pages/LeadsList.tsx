@@ -907,11 +907,12 @@ const LeadsList = () => {
                         {(industryFilter || minScore || maxScore || campaignId || companyFilter !== 'all' || sourceFilter !== 'all') && (
                             <button 
                                 onClick={() => {
+                                    setSearchTerm('');
                                     setSearchParams({});
                                     setCompanyFilter('all');
                                     setSourceFilter('all');
                                 }}
-                                className="w-full sm:w-auto px-4 py-2.5 border border-red-200 bg-red-50 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                                className="w-full sm:w-auto px-6 h-[46px] md:h-[52px] border border-red-200 bg-red-50 rounded-xl text-sm font-bold text-red-600 hover:bg-red-100 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                             >
                                 <X size={18} />
                                 Clear Filter
@@ -921,7 +922,7 @@ const LeadsList = () => {
                             <div className="relative group flex-1 sm:flex-none">
                                 <button 
                                     onClick={handleImportCSV}
-                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
+                                    className="w-full px-6 h-[46px] md:h-[52px] border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
                                 >
                                     <Upload size={16} />
                                     Import
@@ -935,14 +936,14 @@ const LeadsList = () => {
                             </div>
                             <button 
                                 onClick={handleExportCSV}
-                                className="flex-1 sm:flex-none px-4 py-2.5 border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
+                                className="flex-1 sm:flex-none px-6 h-[46px] md:h-[52px] border border-slate-200 rounded-xl text-xs sm:text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm whitespace-nowrap"
                             >
                                 <Download size={16} />
                                 Export
                             </button>
                             <button 
                                 onClick={() => setShowBulkEmail(true)}
-                                className="col-span-2 xs:col-span-1 flex-1 sm:flex-none px-4 py-2.5 bg-[#1b57b1] text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer whitespace-nowrap"
+                                className="col-span-2 xs:col-span-1 flex-1 sm:flex-none px-6 h-[46px] md:h-[52px] bg-[#1b57b1] text-white rounded-xl text-xs sm:text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 shadow-lg shadow-[#1b57b1]/20 cursor-pointer whitespace-nowrap"
                             >
                                 <Mail size={16} />
                                 Email
@@ -968,7 +969,7 @@ const LeadsList = () => {
                                 placeholder="Search leads by name, email, or company..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm"
+                                className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-11 h-[46px] md:h-[56px] text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1]/20 outline-none transition-all shadow-sm"
                             />
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end relative z-[50]">
@@ -977,7 +978,7 @@ const LeadsList = () => {
                                     <button
                                         onClick={handleBulkAudit}
                                         disabled={isAuditingBulk}
-                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300 disabled:opacity-50"
+                                        className="h-[46px] md:h-[56px] flex items-center gap-2 px-6 bg-blue-50 border border-blue-200 text-blue-600 rounded-xl text-sm font-bold hover:bg-blue-100 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300 disabled:opacity-50"
                                     >
                                         {isAuditingBulk ? (
                                             <>
@@ -997,7 +998,7 @@ const LeadsList = () => {
                                             setLeadsToAssign(selectedLeads);
                                             setShowAssignModal(true);
                                         }}
-                                        className="flex items-center gap-2 px-4 py-2 bg-[#1b57b1]/5 border border-[#1b57b1] text-[#1b57b1] rounded-xl text-sm font-bold hover:bg-[#1b57b1]/10 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300"
+                                        className="h-[46px] md:h-[56px] flex items-center gap-2 px-6 bg-[#1b57b1]/5 border border-[#1b57b1] text-[#1b57b1] rounded-xl text-sm font-bold hover:bg-[#1b57b1]/10 transition-all shadow-sm cursor-pointer whitespace-nowrap animate-in fade-in slide-in-from-left-2 duration-300"
                                     >
                                         <Target size={18} />
                                         Assign to Campaign ({selectedRows.length})
@@ -1047,8 +1048,8 @@ const LeadsList = () => {
                     <div className="overflow-x-auto pb-4 rounded-b-2xl">
                         <table className="w-full min-w-[1300px] text-left border-collapse">
                             <thead>
-                                <tr className="border-b border-slate-100 bg-slate-50/80">
-                                    <th className="p-4 w-12 text-center sticky left-0 z-[110] bg-slate-50/80 backdrop-blur-sm shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                                <tr className="border-b border-slate-100 bg-slate-50">
+                                    <th className="p-4 w-12 text-center md:sticky md:left-0 z-[110] bg-slate-50 md:shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                                         <button onClick={toggleAll} className="text-slate-400 hover:text-[#1b57b1] transition-colors focus:outline-none">
                                             {selectedRows.length === leads.length && leads.length > 0 ? (
                                                 <CheckCircle2 size={20} className="text-[#1b57b1] fill-[#1b57b1]/10" />
@@ -1057,7 +1058,7 @@ const LeadsList = () => {
                                             )}
                                         </button>
                                     </th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest sticky left-12 z-[110] bg-slate-50/80 backdrop-blur-sm shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Name</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest md:sticky md:left-12 z-[110] bg-slate-50 md:shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">Name</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Company</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Industry</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-center">ICP</th>
@@ -1068,7 +1069,7 @@ const LeadsList = () => {
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Email Sent</th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right sticky right-0 z-[110] bg-slate-50/80 backdrop-blur-sm shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">Actions</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right sticky right-0 z-[110] bg-slate-50 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -1076,9 +1077,9 @@ const LeadsList = () => {
                                     filteredLeads.map((lead, index) => (
                                         <tr 
                                             key={lead.id} 
-                                            className={`border-b border-slate-50 hover:bg-slate-50/80 transition-colors group ${index === filteredLeads.length - 1 ? 'border-none' : ''} ${selectedRows.includes(lead.id) ? 'bg-blue-50/30' : ''} ${dropdownOpenId === lead.id ? 'z-[101] relative' : ''}`}
+                                            className={`border-b border-slate-50 hover:bg-slate-50 transition-colors group ${index === filteredLeads.length - 1 ? 'border-none' : ''} ${selectedRows.includes(lead.id) ? 'bg-blue-50/50' : ''} ${dropdownOpenId === lead.id ? 'z-[101] relative' : ''}`}
                                         >
-                                            <td className="p-4 text-center sticky left-0 z-[100] bg-white group-hover:bg-slate-50 transition-colors shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                                            <td className="p-4 text-center md:sticky md:left-0 z-[100] bg-white group-hover:bg-slate-50 transition-colors md:shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                                                 <button onClick={(e) => { e.stopPropagation(); toggleRow(lead.id); }} className="text-slate-300 group-hover:text-slate-400 hover:!text-[#1b57b1] transition-colors focus:outline-none">
                                                     {selectedRows.includes(lead.id) ? (
                                                         <CheckCircle2 size={20} className="text-[#1b57b1] fill-[#1b57b1]/10" />
@@ -1087,7 +1088,7 @@ const LeadsList = () => {
                                                     )}
                                                 </button>
                                             </td>
-                                            <td className="p-4 sticky left-12 z-[100] bg-white group-hover:bg-slate-50 transition-colors shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
+                                            <td className="p-4 md:sticky md:left-12 z-[100] bg-white group-hover:bg-slate-50 transition-colors md:shadow-[1px_0_0_0_rgba(0,0,0,0.05)]">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-sm font-bold text-slate-600 uppercase">
                                                         {(lead.first_name?.[0] || lead.last_name?.[0] || lead.company?.[0] || lead.email[0])}

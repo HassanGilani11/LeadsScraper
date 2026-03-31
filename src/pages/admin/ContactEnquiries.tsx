@@ -195,7 +195,7 @@ const ContactEnquiries = () => {
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[1000px]">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-100">
+                                <tr className="bg-slate-50 border-b border-slate-100">
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Date</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">User</th>
                                     <th className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Subject</th>

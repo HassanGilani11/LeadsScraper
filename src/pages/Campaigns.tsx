@@ -216,14 +216,14 @@ const Campaigns = () => {
                     <div className="flex gap-3 w-full sm:w-auto">
                         <button 
                             onClick={handleExportCSV}
-                            className="flex-1 sm:flex-none px-4 py-2 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
+                            className="flex-1 sm:flex-none px-6 h-[46px] md:h-[52px] border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 hover:border-slate-300 transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                         >
                             <Download size={18} />
                             Export CSV
                         </button>
                         <button
                             onClick={handleNewCampaign}
-                            className="flex-1 sm:flex-none px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#1b57b1]/20"
+                            className="flex-1 sm:flex-none px-6 h-[46px] md:h-[52px] bg-[#1b57b1] text-white rounded-xl text-sm font-bold hover:bg-[#154690] transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#1b57b1]/20"
                         >
                             <Plus size={18} />
                             New Campaign
@@ -241,7 +241,7 @@ const Campaigns = () => {
                                 placeholder="Filter campaigns..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm"
+                                className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-11 h-[46px] md:h-[56px] text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1]/20 outline-none transition-all shadow-sm"
                             />
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">

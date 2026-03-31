@@ -495,12 +495,12 @@ const UserManagement = () => {
                         <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                             <button 
                                 onClick={() => setIsInviteModalOpen(true)}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-[10px] sm:text-xs font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 whitespace-nowrap"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 h-[46px] md:h-[52px] bg-[#1b57b1] text-white rounded-xl text-xs font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 whitespace-nowrap"
                             >
-                                <UserPlus size={14} className="sm:w-4 sm:h-4" /> Invite User
+                                <UserPlus size={16} /> Invite User
                             </button>
-                            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 text-[10px] sm:text-xs font-bold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap">
-                                <Download size={14} className="sm:w-4 sm:h-4" /> Export CSV
+                            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 h-[46px] md:h-[52px] bg-white border border-slate-200 rounded-xl text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap">
+                                <Download size={16} /> Export CSV
                             </button>
                         </div>
                     </div>
@@ -511,7 +511,7 @@ const UserManagement = () => {
                             <input 
                                 type="text" 
                                 placeholder="Search users..."
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 md:py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all"
+                                className="w-full bg-slate-50/50 border border-slate-200 rounded-xl px-11 h-[46px] md:h-[56px] text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1]/20 transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
@@ -586,7 +586,7 @@ const UserManagement = () => {
                     <div className="w-full max-w-full overflow-x-auto no-scrollbar scroll-smooth pb-48 -mb-48">
                         <table className="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-100">
+                                <tr className="bg-slate-50 border-b border-slate-100">
                                     <th className="px-6 py-4 w-10 text-center">
                                         <input 
                                             type="checkbox" 
