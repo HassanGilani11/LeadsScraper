@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import AppContainer from '@/components/layout/AppContainer';
 import { supabase } from '@/lib/supabase';
@@ -16,7 +16,10 @@ import {
     Copy,
     CheckCircle2,
     Circle,
-    ArrowUpDown
+    ArrowUpDown,
+    MoreVertical,
+    Edit2,
+    Eye
 } from 'lucide-react';
 import CreateCampaignModal from '@/components/modals/CreateCampaignModal';
 import { logAuditAction } from '@/utils/auditLogger';
@@ -28,6 +31,22 @@ const Campaigns = () => {
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [sortBy, setSortBy] = useState('newest');
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
+    const [dropdownOpenId, setDropdownOpenId] = useState<string | null>(null);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown on click outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                if (!(event.target as HTMLElement).closest('.dropdown-toggle')) {
+                    setDropdownOpenId(null);
+                }
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
 
     const filteredCampaigns = campaigns
         .filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -278,14 +297,14 @@ const Campaigns = () => {
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Status</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Leads Extracted</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest">Date Created</th>
-                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right pr-6">Actions</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right sticky right-0 z-[110] bg-slate-50 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100">
                                 {filteredCampaigns.length > 0 ? filteredCampaigns.map((campaign, index) => (
                                     <tr 
                                         key={campaign.id} 
-                                        className={`border-b border-slate-50 hover:bg-slate-50/80 transition-colors group ${index === filteredCampaigns.length - 1 ? 'border-none' : ''} ${selectedRows.includes(campaign.id) ? 'bg-blue-50/30' : ''}`}
+                                        className={`border-b border-slate-50 hover:bg-slate-50 transition-colors group ${index === filteredCampaigns.length - 1 ? 'border-none' : ''} ${selectedRows.includes(campaign.id) ? 'bg-blue-50/30' : ''} ${dropdownOpenId === campaign.id ? 'z-[101] relative' : ''}`}
                                     >
                                         <td className="p-4 text-center pl-6">
                                             <button onClick={() => toggleRow(campaign.id)} className="text-slate-300 group-hover:text-slate-400 hover:!text-[#1b57b1] transition-colors focus:outline-none cursor-pointer">
@@ -322,36 +341,81 @@ const Campaigns = () => {
                                         <td className="p-4 text-sm text-slate-500 font-medium">
                                             {new Date(campaign.created_at).toLocaleDateString()}
                                         </td>
-                                        <td className="p-4 pr-6 text-right">
-                                            <div className="flex items-center justify-end gap-2">
-                                                <button 
-                                                    onClick={() => handleToggleStatus(campaign.id, campaign.status)}
-                                                    className="p-2 text-slate-400 hover:bg-white hover:text-[#1b57b1] rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer" 
-                                                    title={campaign.status === 'running' ? 'Pause' : 'Start'}
+                                        <td className={`p-4 text-right sticky right-0 bg-white group-hover:bg-slate-50 transition-all shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] ${dropdownOpenId === campaign.id ? 'z-[101]' : 'z-[100]'}`}>
+                                            <div className="relative inline-block text-left">
+                                                <button
+                                                    onClick={() => setDropdownOpenId(dropdownOpenId === campaign.id ? null : campaign.id)}
+                                                    className="dropdown-toggle p-2 text-slate-400 hover:bg-white hover:text-slate-700 rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all cursor-pointer relative z-10"
                                                 >
-                                                    {campaign.status === 'running' ? <Pause size={16} /> : <Play size={16} />}
+                                                    <MoreVertical size={16} />
                                                 </button>
-                                                <button 
-                                                    onClick={() => handleDuplicateCampaign(campaign)}
-                                                    className="p-2 text-slate-400 hover:bg-white hover:text-[#1b57b1] rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer" 
-                                                    title="Duplicate Campaign"
-                                                >
-                                                    <Copy size={16} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleEdit(campaign)}
-                                                    className="p-2 text-slate-400 hover:bg-white hover:text-[#1b57b1] rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer" 
-                                                    title="Edit Campaign"
-                                                >
-                                                    <Pencil size={16} />
-                                                </button>
-                                                <button 
-                                                    onClick={() => handleDelete(campaign.id)}
-                                                    className="p-2 text-slate-400 hover:bg-white hover:text-red-600 rounded-lg hover:shadow-sm border border-transparent hover:border-slate-200 transition-all focus:opacity-100 cursor-pointer" 
-                                                    title="Delete"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
+                                                
+                                                {dropdownOpenId === campaign.id && (
+                                                    <div
+                                                        ref={dropdownRef}
+                                                        className="absolute right-0 mt-1 w-52 bg-white rounded-xl shadow-2xl border border-slate-100 z-[102] overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+                                                    >
+                                                        <div className="px-2 pt-2 pb-1">
+                                                            <p className="px-2 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Campaign Actions</p>
+                                                            
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { setDropdownOpenId(null); setSearchQuery(''); window.location.href = `/leads?campaignId=${campaign.id}`; }}
+                                                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                            >
+                                                                <Eye size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                View Leads
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { handleToggleStatus(campaign.id, campaign.status); setDropdownOpenId(null); }}
+                                                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                            >
+                                                                {campaign.status === 'running' ? (
+                                                                    <>
+                                                                        <Pause size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                        Pause Campaign
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        <Play size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                        Start Campaign
+                                                                    </>
+                                                                )}
+                                                            </button>
+                                                            
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { handleDuplicateCampaign(campaign); setDropdownOpenId(null); }}
+                                                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                            >
+                                                                <Copy size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                Duplicate
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { handleEdit(campaign); setDropdownOpenId(null); }}
+                                                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
+                                                            >
+                                                                <Edit2 size={16} className="text-slate-400 group-hover/item:text-[#1b57b1]" />
+                                                                Edit Campaign
+                                                            </button>
+                                                        </div>
+
+                                                        <div className="px-2 py-1 border-t border-slate-50">
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => { handleDelete(campaign.id); setDropdownOpenId(null); }}
+                                                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors group/item"
+                                                            >
+                                                                <Trash2 size={16} className="text-red-400 group-hover/item:text-red-600" />
+                                                                Delete
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
