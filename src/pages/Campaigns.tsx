@@ -15,10 +15,12 @@ import {
     Download,
     Copy,
     CheckCircle2,
-    Circle
+    Circle,
+    ArrowUpDown
 } from 'lucide-react';
 import CreateCampaignModal from '@/components/modals/CreateCampaignModal';
 import { logAuditAction } from '@/utils/auditLogger';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const Campaigns = () => {
     const { campaigns, setCampaigns, addCampaign, user, searchQuery, setSearchQuery } = useStore();
@@ -230,8 +232,8 @@ const Campaigns = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative z-[30]">
+                    <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 rounded-t-2xl relative z-[40]">
                         <div className="relative w-full sm:w-80 group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1b57b1] transition-colors" size={18} />
                             <input
@@ -243,23 +245,23 @@ const Campaigns = () => {
                             />
                         </div>
                         <div className="flex items-center gap-2 w-full sm:w-auto">
-                            <div className="relative">
-                                <select 
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] w-full sm:w-auto min-w-[160px]"
-                                >
-                                    <option value="newest">Sort by: Newest</option>
-                                    <option value="oldest">Sort by: Oldest</option>
-                                    <option value="name">Sort by: Name (A-Z)</option>
-                                    <option value="leads">Sort by: Lead Count</option>
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
+                            <CustomSelect
+                                value={sortBy}
+                                onChange={setSortBy}
+                                className="w-full sm:w-auto min-w-[160px]"
+                                isBold
+                                icon={ArrowUpDown}
+                                options={[
+                                    { label: 'Sort by: Newest', value: 'newest' },
+                                    { label: 'Sort by: Oldest', value: 'oldest' },
+                                    { label: 'Sort by: Name (A-Z)', value: 'name' },
+                                    { label: 'Sort by: Lead Count', value: 'leads' }
+                                ]}
+                            />
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto">
+                    <div className="overflow-x-auto rounded-b-2xl">
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50/80">

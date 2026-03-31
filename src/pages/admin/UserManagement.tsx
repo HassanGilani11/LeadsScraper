@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
     Users, 
     UserPlus, 
@@ -23,6 +23,7 @@ import AppContainer from '@/components/layout/AppContainer';
 import { useStore } from '@/store/useStore';
 import { supabase } from '@/lib/supabase';
 import { logAuditAction } from '@/utils/auditLogger';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const UserManagement = () => {
     const { user: currentUser, addNotification } = useStore();
@@ -382,10 +383,10 @@ const UserManagement = () => {
     };
 
     const statCards = [
-        { label: 'Total Users', value: stats.total.toLocaleString(), icon: <Users className="text-[#1b57b1]" />, trend: 'Overall' },
-        { label: 'Active Users', value: stats.active.toLocaleString(), icon: <UserCheck className="text-emerald-600" />, trend: 'System Access' },
-        { label: 'Pro/Ent Users', value: stats.premium.toLocaleString(), icon: <UserPlus className="text-amber-600" />, trend: 'Paid Plans' },
-        { label: 'Banned Users', value: stats.banned.toLocaleString(), icon: <UserMinus className="text-rose-600" />, trend: 'Restricted' },
+        { label: 'Total Users', value: stats.total.toLocaleString(), Icon: Users, color: 'text-[#1b57b1]', trend: 'Overall' },
+        { label: 'Active Users', value: stats.active.toLocaleString(), Icon: UserCheck, color: 'text-emerald-600', trend: 'System Access' },
+        { label: 'Pro/Ent Users', value: stats.premium.toLocaleString(), Icon: UserPlus, color: 'text-amber-600', trend: 'Paid Plans' },
+        { label: 'Banned Users', value: stats.banned.toLocaleString(), Icon: UserMinus, color: 'text-rose-600', trend: 'Restricted' },
     ];
 
     const filteredUsers = users.filter(u => 
@@ -457,100 +458,99 @@ const UserManagement = () => {
 
     return (
         <AppContainer title="Admin: User Management">
-            <div className="space-y-6 pb-20">
+            <div className="space-y-4 md:space-y-6 pb-20 px-0 sm:px-0 max-w-full">
                 {/* Stats Row - Matching Dashboard KPICards */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                     {statCards.map((stat, i) => (
-                        <div key={i} className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md h-full flex flex-col justify-between">
+                        <div key={i} className="bg-white p-4 md:p-6 rounded-xl border border-slate-200 shadow-sm transition-all hover:shadow-md h-full flex flex-col justify-between">
                             <div className="flex justify-between items-start mb-2">
-                                <p className="text-sm text-slate-500 font-medium">{stat.label}</p>
-                                <div className="p-1.5 bg-slate-50 rounded-lg">
-                                    {stat.icon}
+                                <p className="text-xs md:text-sm text-slate-500 font-medium">{stat.label}</p>
+                                <div className="p-1 md:p-1.5 bg-slate-50 rounded-lg">
+                                    <stat.Icon className={stat.color} size={window.innerWidth < 640 ? 18 : 20} />
                                 </div>
                             </div>
                             <div className="flex items-end justify-between">
-                                <h3 className="text-3xl font-bold text-slate-900">{stat.value}</h3>
-                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.trend}</span>
+                                <h3 className="text-2xl md:text-3xl font-bold text-slate-900">{stat.value}</h3>
+                                <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">{stat.trend}</span>
                             </div>
                         </div>
                     ))}
                 </div>
 
                 {/* Filter Bar - Matching Dashboard styling */}
-                <div className="bg-white border border-slate-200 rounded-xl p-6 space-y-4 shadow-sm">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
+                <div className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 md:p-6 space-y-4 shadow-sm max-w-full relative z-[20]">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+                        <div className="flex bg-slate-100 p-1 rounded-lg w-fit overflow-x-auto no-scrollbar max-w-full">
                             {['All', 'Today', 'Week'].map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setTimeTab(tab)}
-                                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${timeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`px-3 sm:px-4 py-1.5 rounded-md text-[10px] sm:text-xs font-bold whitespace-nowrap transition-all ${timeTab === tab ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     {tab}
                                 </button>
                             ))}
                         </div>
 
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                             <button 
                                 onClick={() => setIsInviteModalOpen(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-xs font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20"
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-[#1b57b1] text-white rounded-xl text-[10px] sm:text-xs font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 whitespace-nowrap"
                             >
-                                <UserPlus size={16} /> Invite User
+                                <UserPlus size={14} className="sm:w-4 sm:h-4" /> Invite User
                             </button>
-                            <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 text-xs font-bold hover:bg-slate-50 transition-all shadow-sm">
-                                <Download size={16} /> Export CSV
+                            <button className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-slate-200 rounded-xl text-slate-600 text-[10px] sm:text-xs font-bold hover:bg-slate-50 transition-all shadow-sm whitespace-nowrap">
+                                <Download size={14} className="sm:w-4 sm:h-4" /> Export CSV
                             </button>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                        <div className="md:col-span-5 relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-12 gap-2 sm:gap-3 md:gap-4">
+                        <div className="sm:col-span-2 md:col-span-5 relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                             <input 
                                 type="text" 
-                                placeholder="Search by name, email or company..."
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all"
+                                placeholder="Search users..."
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-2 md:py-2.5 text-sm text-slate-900 placeholder:text-slate-500 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
                             />
                         </div>
                         <div className="md:col-span-3">
-                            <select 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all appearance-none cursor-pointer"
+                            <CustomSelect
                                 value={planFilter}
-                                onChange={(e) => setPlanFilter(e.target.value)}
-                            >
-                                <option value="All">All Plans</option>
-                                <option value="Starter">Starter</option>
-                                <option value="Pro">Pro</option>
-                                <option value="Enterprise">Enterprise</option>
-                            </select>
+                                onChange={setPlanFilter}
+                                options={[
+                                    { label: 'All Plans', value: 'All' },
+                                    { label: 'Starter', value: 'Starter' },
+                                    { label: 'Pro', value: 'Pro' },
+                                    { label: 'Enterprise', value: 'Enterprise' }
+                                ]}
+                            />
                         </div>
                         <div className="md:col-span-2">
-                            <select 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all appearance-none cursor-pointer"
+                            <CustomSelect
                                 value={statusFilter}
-                                onChange={(e) => setStatusFilter(e.target.value)}
-                            >
-                                <option value="All">All Status</option>
-                                <option value="Active">Active Only</option>
-                                <option value="Banned">Banned Only</option>
-                            </select>
+                                onChange={setStatusFilter}
+                                options={[
+                                    { label: 'All Status', value: 'All' },
+                                    { label: 'Active Only', value: 'Active' },
+                                    { label: 'Banned Only', value: 'Banned' }
+                                ]}
+                            />
                         </div>
                         <div className="md:col-span-2">
-                            <div className="relative">
-                                <select 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all appearance-none cursor-pointer font-bold"
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                >
-                                    <option value="newest">Joined: Newest</option>
-                                    <option value="oldest">Joined: Oldest</option>
-                                    <option value="name">Sort: Name</option>
-                                </select>
-                                <ArrowUpDown className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={14} />
-                            </div>
+                            <CustomSelect
+                                value={sortBy}
+                                onChange={setSortBy}
+                                isBold
+                                icon={ArrowUpDown}
+                                options={[
+                                    { label: 'Newest', value: 'newest' },
+                                    { label: 'Oldest', value: 'oldest' },
+                                    { label: 'Name', value: 'name' }
+                                ]}
+                            />
                         </div>
                     </div>
                 </div>
@@ -583,8 +583,8 @@ const UserManagement = () => {
                         </div>
                     )}
 
-                    <div className="overflow-x-auto pb-48 -mb-48">
-                        <table className="w-full text-left border-collapse min-w-[1000px]">
+                    <div className="w-full max-w-full overflow-x-auto no-scrollbar scroll-smooth pb-48 -mb-48">
+                        <table className="w-full text-left border-collapse min-w-[800px] md:min-w-[1000px]">
                             <thead>
                                 <tr className="bg-slate-50/80 border-b border-slate-100">
                                     <th className="px-6 py-4 w-10 text-center">
@@ -970,39 +970,39 @@ const UserManagement = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Plan</label>
-                                    <select 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10"
+                                    <CustomSelect
                                         value={inviteData.plan}
-                                        onChange={(e) => setInviteData({ ...inviteData, plan: e.target.value })}
-                                    >
-                                        <option value="Starter">Starter</option>
-                                        <option value="Pro">Pro</option>
-                                        <option value="Enterprise">Enterprise</option>
-                                    </select>
+                                        onChange={(val) => setInviteData({ ...inviteData, plan: val })}
+                                        options={[
+                                            { label: 'Starter', value: 'Starter' },
+                                            { label: 'Pro', value: 'Pro' },
+                                            { label: 'Enterprise', value: 'Enterprise' }
+                                        ]}
+                                    />
                                 </div>
                                 <div>
                                     <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Status</label>
-                                    <select 
-                                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10"
+                                    <CustomSelect
                                         value={inviteData.status}
-                                        onChange={(e) => setInviteData({ ...inviteData, status: e.target.value })}
-                                    >
-                                        <option value="Active">Active</option>
-                                        <option value="Banned">Banned</option>
-                                    </select>
+                                        onChange={(val) => setInviteData({ ...inviteData, status: val })}
+                                        options={[
+                                            { label: 'Active', value: 'Active' },
+                                            { label: 'Banned', value: 'Banned' }
+                                        ]}
+                                    />
                                 </div>
                             </div>
 
-                            <div>
+                            <div className="relative z-[20]">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Role</label>
-                                <select 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10"
+                                <CustomSelect
                                     value={inviteData.role}
-                                    onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
-                                >
-                                    <option value="Member">Member</option>
-                                    <option value="Admin">Admin</option>
-                                </select>
+                                    onChange={(val) => setInviteData({ ...inviteData, role: val })}
+                                    options={[
+                                        { label: 'Member', value: 'Member' },
+                                        { label: 'Admin', value: 'Admin' }
+                                    ]}
+                                />
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 pt-4">
@@ -1061,17 +1061,17 @@ const UserManagement = () => {
                                             <span className="text-xs text-slate-500">Account Role</span>
                                             <span className="text-xs font-bold text-slate-900">{selectedUser?.role || 'Member'}</span>
                                         </div>
-                                        <div className="pt-2 border-t border-slate-100 flex flex-col gap-2">
+                                        <div className="pt-2 border-t border-slate-100 flex flex-col gap-2 relative z-[30]">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Plan</span>
-                                            <select 
-                                                className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1b57b1]/10"
+                                            <CustomSelect
                                                 value={selectedUser?.plan}
-                                                onChange={(e) => handlePlanChange(selectedUser, e.target.value)}
-                                            >
-                                                <option value="Starter">Starter</option>
-                                                <option value="Pro">Pro</option>
-                                                <option value="Enterprise">Enterprise</option>
-                                            </select>
+                                                onChange={(val) => handlePlanChange(selectedUser, val)}
+                                                options={[
+                                                    { label: 'Starter', value: 'Starter' },
+                                                    { label: 'Pro', value: 'Pro' },
+                                                    { label: 'Enterprise', value: 'Enterprise' }
+                                                ]}
+                                            />
                                         </div>
                                     </div>
                                 </div>

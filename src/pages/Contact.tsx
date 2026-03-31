@@ -5,10 +5,12 @@ import { Layers, ArrowLeft, Mail, MessageSquare, Send, Loader2 } from 'lucide-re
 import LandingFooter from '@/components/layout/LandingFooter';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const Contact = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [subject, setSubject] = useState('General Inquiry');
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
@@ -18,7 +20,7 @@ const Contact = () => {
         const data = {
             fullName: formData.get('fullName'),
             email: formData.get('email'),
-            subject: formData.get('subject'),
+            subject: subject,
             message: formData.get('message'),
         };
 
@@ -142,17 +144,18 @@ const Contact = () => {
                                         </div>
                                     </div>
                                     
-                                    <div className="space-y-1.5">
+                                    <div className="space-y-1.5 relative z-[20]">
                                         <label className="text-sm font-bold text-slate-700 ml-1">Subject</label>
-                                        <select 
-                                            name="subject"
-                                            className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-[#1b57b1]/20 focus:border-[#1b57b1] outline-none transition-all text-slate-900 font-medium appearance-none"
-                                        >
-                                            <option>General Inquiry</option>
-                                            <option>Sales & Enterprise</option>
-                                            <option>Technical Support</option>
-                                            <option>Billing Question</option>
-                                        </select>
+                                        <CustomSelect
+                                            value={subject}
+                                            onChange={setSubject}
+                                            options={[
+                                                { label: 'General Inquiry', value: 'General Inquiry' },
+                                                { label: 'Sales & Enterprise', value: 'Sales & Enterprise' },
+                                                { label: 'Technical Support', value: 'Technical Support' },
+                                                { label: 'Billing Question', value: 'Billing Question' }
+                                            ]}
+                                        />
                                     </div>
 
                                     <div className="space-y-1.5">

@@ -341,22 +341,22 @@ const RevenueMetrics = () => {
                 
                 {/* Header */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-xl font-bold text-slate-900 leading-none flex items-center gap-2">
-                            <Activity className="text-[#1b57b1]" size={24} />
+                    <div className="w-full md:w-auto">
+                        <h1 className="text-lg md:text-xl font-bold text-slate-900 leading-none flex items-center gap-2">
+                            <Activity className="text-[#1b57b1] md:w-6 md:h-6" size={20} />
                             Revenue Metrics
                         </h1>
-                        <p className="text-xs text-slate-500 mt-2 font-medium">Real-time SaaS financial performance and subscriber analytics.</p>
+                        <p className="text-[10px] md:text-xs text-slate-500 mt-2 font-medium max-w-xs md:max-w-none">Real-time SaaS financial performance and subscriber analytics.</p>
                     </div>
 
                     {/* Filter & Export Actions */}
-                    <div className="flex items-center gap-3">
-                        <div className="flex bg-slate-100 p-1 rounded-lg w-fit">
+                    <div className="flex items-center gap-2 sm:gap-3 flex-wrap w-full md:w-auto">
+                        <div className="flex bg-slate-100 p-0.5 sm:p-1 rounded-lg w-full sm:w-fit overflow-x-auto no-scrollbar">
                             {['1M', '3M', '6M', '12M', 'Lifetime'].map(range => (
                                 <button
                                     key={range}
                                     onClick={() => setDateFilter(range)}
-                                    className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all ${dateFilter === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                                    className={`flex-1 sm:flex-none px-2 sm:px-4 py-1.5 rounded-md text-[10px] sm:text-xs font-bold transition-all whitespace-nowrap ${dateFilter === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                                 >
                                     {range}
                                 </button>
@@ -364,7 +364,7 @@ const RevenueMetrics = () => {
                         </div>
                         <button 
                             onClick={handleExportCSV} 
-                            className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-3 sm:px-4 py-2 bg-white border border-slate-200 text-slate-700 rounded-lg text-[10px] sm:text-xs font-bold hover:bg-slate-50 transition-colors shadow-sm whitespace-nowrap"
                         >
                             <Download size={14} /> Export CSV
                         </button>

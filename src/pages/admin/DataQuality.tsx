@@ -17,7 +17,8 @@ import {
     Phone,
     Globe,
     MapPin,
-    BarChart3
+    BarChart3,
+    ChevronDown
 } from 'lucide-react';
 import {
     Chart as ChartJS,
@@ -35,6 +36,7 @@ import { Doughnut, Line, Bar } from 'react-chartjs-2';
 import AppContainer from '@/components/layout/AppContainer';
 import { supabase } from '@/lib/supabase';
 import { useStore } from '@/store/useStore';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 ChartJS.register(
     CategoryScale,
@@ -461,7 +463,7 @@ const DataQuality = () => {
         <AppContainer title="Data Quality Monitoring">
             <div className="space-y-6 pb-20">
                 {/* Header & Filter */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm relative z-[60]">
                     <div className="flex items-center gap-4">
                         <div className="w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-[#1b57b1]">
                             <ShieldAlert size={28} />
@@ -490,19 +492,16 @@ const DataQuality = () => {
 
                         <div className="w-full sm:w-64 shrink-0" style={{ maxWidth: '280px' }}>
                             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Filter by User</label>
-                            <div className="relative">
-                                <select 
-                                    value={selectedUserId}
-                                    onChange={(e) => setSelectedUserId(e.target.value)}
-                                    className="w-full appearance-none pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1b57b1]/20 focus:border-[#1b57b1] transition-all cursor-pointer"
-                                >
-                                    <option value="all">All Users (Global)</option>
-                                    {profiles.map(p => (
-                                        <option key={p.id} value={p.id}>{p.full_name || p.email}</option>
-                                    ))}
-                                </select>
-                                <Users size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
+                            <CustomSelect
+                                value={selectedUserId}
+                                onChange={setSelectedUserId}
+                                icon={Users}
+                                placeholder="All Users (Global)"
+                                options={[
+                                    { label: 'All Users (Global)', value: 'all' },
+                                    ...profiles.map(p => ({ label: p.full_name || p.email, value: p.id }))
+                                ]}
+                            />
                         </div>
                     </div>
                 </div>
@@ -729,27 +728,26 @@ const DataQuality = () => {
                         </div>
 
                         {/* Recent Job Quality Log Table */}
-                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col mt-8">
-                            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col mt-8 relative z-[50]">
+                            <div className="p-4 sm:p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative z-[55]">
                                 <div>
                                     <h2 className="text-lg font-bold text-slate-900">Recent Job Quality Log</h2>
                                     <p className="text-sm text-slate-500">Per-scrape quality scores — flagged jobs highlighted</p>
                                 </div>
-                                <div className="flex items-center gap-4">
-                                    <div className="flex items-center gap-2 text-xs font-bold text-red-500">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full sm:w-auto">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-red-500 whitespace-nowrap">
                                         <div className="w-1.5 h-1.5 rounded-full bg-red-500"></div>
                                         Below threshold
                                     </div>
-                                    <select 
+                                    <CustomSelect
                                         value={selectedUserId}
-                                        onChange={(e) => setSelectedUserId(e.target.value)}
-                                        className="bg-white text-sm text-slate-700 border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-slate-500 font-medium cursor-pointer"
-                                    >
-                                        <option value="all">All users</option>
-                                        {profiles.map(p => (
-                                            <option key={p.id} value={p.id}>{p.full_name || p.email}</option>
-                                        ))}
-                                    </select>
+                                        onChange={setSelectedUserId}
+                                        className="w-full sm:w-auto min-w-[160px]"
+                                        options={[
+                                            { label: 'All users', value: 'all' },
+                                            ...profiles.map(p => ({ label: p.full_name || p.email, value: p.id }))
+                                        ]}
+                                    />
                                 </div>
                             </div>
                             <div className="overflow-x-auto">

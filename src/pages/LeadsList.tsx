@@ -10,6 +10,7 @@ import AssignToCampaignModal from '@/components/modals/AssignToCampaignModal';
 import { Target } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const LeadsList = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -36,6 +37,7 @@ const LeadsList = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [companyFilter, setCompanyFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
+    const [editSource, setEditSource] = useState('scraper');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -428,6 +430,11 @@ const LeadsList = () => {
         reader.readAsText(file);
     };
 
+    const handleEditClick = (lead: Lead) => {
+        setEditingLead(lead);
+        setEditSource(lead.source || 'scraper');
+    };
+
     const handleGeneratePDF = (lead: Lead) => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -691,19 +698,19 @@ const LeadsList = () => {
         setSelectedRows([]);
     };
 
-    const handleUpdateLead = async (updatedLead: Partial<Lead>) => {
+    const handleUpdateLead = async (updates: Partial<Lead>) => {
         if (!editingLead) return;
         
         try {
-            const { error } = await supabase
+            const { error: updateError } = await supabase
                 .from('leads')
-                .update(updatedLead)
+                .update({ ...updates, source: editSource })
                 .eq('id', editingLead.id);
                 
-            if (error) throw error;
+            if (updateError) throw updateError;
             
             setLeads(leads.map(lead => 
-                lead.id === editingLead.id ? { ...lead, ...updatedLead } : lead
+                lead.id === editingLead.id ? { ...lead, ...updates, source: editSource } : lead
             ));
             setEditingLead(null);
             toast.success('Lead updated');
@@ -952,8 +959,8 @@ const LeadsList = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
-                    <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative z-[30]">
+                    <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 rounded-t-2xl relative z-[40]">
                         <div className="relative w-full sm:w-80 group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1b57b1] transition-colors" size={18} />
                             <input
@@ -964,7 +971,7 @@ const LeadsList = () => {
                                 className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm"
                             />
                         </div>
-                        <div className="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
+                        <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap justify-end relative z-[50]">
                             {selectedRows.length > 0 && (
                                 <>
                                     <button
@@ -997,54 +1004,47 @@ const LeadsList = () => {
                                     </button>
                                 </>
                             )}
-                            {/* Company Filter */}
-                            <div className="relative">
-                                <select 
-                                    value={companyFilter}
-                                    onChange={(e) => setCompanyFilter(e.target.value)}
-                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[140px]"
-                                >
-                                    <option value="all">All Companies</option>
-                                    {uniqueCompanies.map(company => (
-                                        <option key={company} value={company}>{company}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
+                             {/* Company Filter */}
+                            <CustomSelect
+                                value={companyFilter}
+                                onChange={setCompanyFilter}
+                                className="min-w-[140px]"
+                                options={[
+                                    { label: 'All Companies', value: 'all' },
+                                    ...uniqueCompanies.map(company => ({ label: company, value: company }))
+                                ]}
+                            />
 
                             {/* Source Filter */}
-                            <div className="relative">
-                                <select 
-                                    value={sourceFilter}
-                                    onChange={(e) => setSourceFilter(e.target.value)}
-                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[140px]"
-                                >
-                                    <option value="all">All Sources</option>
-                                    <option value="csv">CSV Import</option>
-                                    <option value="scraper">Lead Scraper</option>
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
+                            <CustomSelect
+                                value={sourceFilter}
+                                onChange={setSourceFilter}
+                                className="min-w-[140px]"
+                                options={[
+                                    { label: 'All Sources', value: 'all' },
+                                    { label: 'CSV Import', value: 'csv' },
+                                    { label: 'Lead Scraper', value: 'scraper' }
+                                ]}
+                            />
 
                             {/* Sort Filter */}
-                            <div className="relative">
-                                <select 
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    className="appearance-none pl-4 pr-10 py-2.5 border border-slate-200 bg-white rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-50 transition-all cursor-pointer shadow-sm outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] min-w-[140px] xs:min-w-[160px]"
-                                >
-                                    <option value="newest">Sort by: Newest</option>
-                                    <option value="oldest">Sort by: Oldest</option>
-                                    <option value="name">Sort by: Name (A-Z)</option>
-                                    <option value="company">Sort by: Company (A-Z)</option>
-                                    <option value="score">Sort by: ICP Score</option>
-                                </select>
-                                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                            </div>
+                            <CustomSelect
+                                value={sortBy}
+                                onChange={setSortBy}
+                                className="min-w-[140px] xs:min-w-[160px]"
+                                isBold
+                                options={[
+                                    { label: 'Sort by: Newest', value: 'newest' },
+                                    { label: 'Sort by: Oldest', value: 'oldest' },
+                                    { label: 'Sort by: Name (A-Z)', value: 'name' },
+                                    { label: 'Sort by: Company (A-Z)', value: 'company' },
+                                    { label: 'Sort by: ICP Score', value: 'score' }
+                                ]}
+                            />
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto pb-4">
+                    <div className="overflow-x-auto pb-4 rounded-b-2xl">
                         <table className="w-full min-w-[1300px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50/80">
@@ -1650,16 +1650,16 @@ const LeadsList = () => {
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5 pt-2 border-t border-slate-100 mt-4">
+                            <div className="space-y-1.5 pt-2 border-t border-slate-100 mt-4 relative z-[100]">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Lead Source</label>
-                                <select 
-                                    name="source" 
-                                    defaultValue={editingLead.source || 'scraper'} 
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all cursor-pointer"
-                                >
-                                    <option value="scraper">Lead Scraper</option>
-                                    <option value="csv">CSV Import</option>
-                                </select>
+                                <CustomSelect
+                                    value={editSource}
+                                    onChange={setEditSource}
+                                    options={[
+                                        { label: 'Lead Scraper', value: 'scraper' },
+                                        { label: 'CSV Import', value: 'csv' }
+                                    ]}
+                                />
                             </div>
                             <div className="space-y-1.5 opacity-60">
                                 <label className="text-xs font-bold text-slate-500 uppercase tracking-widest pl-1">Email (Read Only)</label>

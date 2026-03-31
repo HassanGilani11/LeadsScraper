@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import PlanUpgradeModal from '@/components/modals/PlanUpgradeModal';
 import { logAuditAction } from '@/utils/auditLogger';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const LeadScraper = () => {
     const [url, setUrl] = useState('');
@@ -197,22 +198,17 @@ const LeadScraper = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div className="md:col-span-1">
                             <label className="block text-sm font-bold text-slate-700 mb-2">Assign to Campaign</label>
-                            <div className="relative">
-                                <Filter className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                                <select
-                                    value={selectedCampaignId}
-                                    onChange={(e) => setSelectedCampaignId(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 md:py-4 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all appearance-none cursor-pointer font-medium text-slate-700"
-                                >
-                                    <option value="">No Campaign (General)</option>
-                                    {campaigns.map(camp => (
-                                        <option key={camp.id} value={camp.id}>
-                                            {camp.name}
-                                        </option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" size={18} />
-                            </div>
+                            <CustomSelect
+                                value={selectedCampaignId}
+                                onChange={setSelectedCampaignId}
+                                icon={Filter}
+                                placeholder="No Campaign (General)"
+                                align="left"
+                                options={[
+                                    { label: 'No Campaign (General)', value: '' },
+                                    ...campaigns.map(camp => ({ label: camp.name, value: camp.id }))
+                                ]}
+                            />
                         </div>
 
                         <div className="md:col-span-2">

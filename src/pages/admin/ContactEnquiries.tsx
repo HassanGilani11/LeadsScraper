@@ -6,6 +6,7 @@ import {
     ChevronRight,
     Loader2,
     Trash2,
+    Download,
     Calendar,
     User,
     MessageSquare,
@@ -20,6 +21,7 @@ const ContactEnquiries = () => {
     const { user: currentUser } = useStore();
     const [enquiries, setEnquiries] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [exporting, setExporting] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
     const [page, setPage] = useState(1);
     const [pageSize] = useState(10);
@@ -58,6 +60,57 @@ const ContactEnquiries = () => {
             toast.error('Failed to fetch contact enquiries');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            let query = supabase
+                .from('contact_enquiries')
+                .select('*');
+
+            if (searchTerm) {
+                query = query.or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,subject.ilike.%${searchTerm}%,message.ilike.%${searchTerm}%`);
+            }
+
+            query = query.order('created_at', { ascending: false });
+
+            const { data, error } = await query;
+
+            if (error) throw error;
+            if (!data || data.length === 0) {
+                toast.error('No enquiries to export');
+                return;
+            }
+
+            const headers = ['Date', 'Time', 'Full Name', 'Email', 'Subject', 'Message'];
+            const csvRows = data.map(item => [
+                new Date(item.created_at).toLocaleDateString(),
+                new Date(item.created_at).toLocaleTimeString(),
+                item.full_name,
+                item.email,
+                item.subject,
+                `"${item.message.replace(/"/g, '""').replace(/\n/g, ' ')}"`
+            ]);
+
+            const csvContent = [headers.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `contact-enquiries-${new Date().toISOString().split('T')[0]}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            toast.success(`Exported ${data.length} enquiry records`);
+        } catch (err) {
+            console.error('Error exporting enquiries:', err);
+            toast.error('Failed to export enquiries');
+        } finally {
+            setExporting(false);
         }
     };
 
@@ -103,6 +156,18 @@ const ContactEnquiries = () => {
                         <h1 className="text-xl font-bold text-slate-900 leading-none">Contact Enquiries</h1>
                         <p className="text-xs text-slate-500 mt-2 font-medium">Manage incoming messages from the contact form</p>
                     </div>
+                    <button 
+                        onClick={handleExport}
+                        disabled={exporting || enquiries.length === 0}
+                        className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all shadow-sm disabled:opacity-50"
+                    >
+                        {exporting ? (
+                            <Loader2 className="animate-spin" size={14} />
+                        ) : (
+                            <Download size={14} />
+                        )}
+                        <span>{exporting ? 'Exporting...' : 'Download CSV'}</span>
+                    </button>
                 </div>
 
                 {/* Filter Bar */}

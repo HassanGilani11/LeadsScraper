@@ -97,25 +97,25 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
     ).slice(0, 3) : [];
 
     return (
-        <header className="h-16 border-b border-slate-200 bg-white px-4 md:px-8 flex items-center justify-between sticky top-0 z-10">
-            <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        <header className="h-16 border-b border-slate-200 bg-white px-3 sm:px-4 md:px-8 flex items-center justify-between sticky top-0 z-50 max-w-full">
+            <div className={`flex items-center gap-1.5 sm:gap-4 flex-shrink-0 transition-all duration-300 ${isSearchFocused ? 'hidden sm:flex' : 'flex'}`}>
                 <button
                     onClick={onMenuClick}
-                    className="p-2 md:hidden text-slate-600 h-10 w-10 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
+                    className="p-1 sm:p-2 md:hidden text-slate-600 h-9 w-9 sm:h-10 sm:w-10 flex items-center justify-center rounded-lg hover:bg-slate-100 transition-colors"
                 >
-                    <Menu size={20} />
+                    <Menu size={18} className="sm:w-5 sm:h-5" />
                 </button>
-                <h2 className="text-lg md:text-xl font-bold tracking-tight text-slate-900 truncate">{title || "Analytics"}</h2>
+                <h2 className="text-sm sm:text-base md:text-xl font-bold tracking-tight text-slate-900 truncate max-w-[140px] sm:max-w-none">{title || "Analytics"}</h2>
             </div>
 
-            <div className="flex-1 flex items-center justify-end gap-2 md:gap-4 ml-2">
-                <div className="relative w-full max-w-[40px] xs:max-w-[140px] sm:max-w-xs md:max-w-md transition-all duration-300">
+            <div className={`flex-1 flex items-center justify-end gap-1.5 sm:gap-4 ml-2 transition-all duration-300 ${isSearchFocused ? 'w-full' : ''}`}>
+                <div className={`relative transition-all duration-300 ${isSearchFocused ? 'flex-1 max-w-full' : 'w-full max-w-[100px] sm:max-w-xs md:max-w-md'}`}>
                     <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                         <Search size={16} />
                     </div>
                     <input
-                        className="w-full bg-slate-100 border-none rounded-lg pl-9 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all placeholder:text-slate-400"
-                        placeholder="Search leads, campaigns..."
+                        className={`w-full bg-slate-100 border-none rounded-lg pl-9 pr-4 py-1.5 text-sm focus:ring-2 focus:ring-[#1b57b1]/20 outline-none transition-all placeholder:text-slate-400 ${isSearchFocused ? 'bg-white border border-slate-200 shadow-sm' : ''}`}
+                        placeholder={isSearchFocused || window.innerWidth > 640 ? "Search leads, campaigns..." : ""}
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -126,7 +126,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                     
                     {/* Global Search Results Dropdown */}
                     {isSearchFocused && searchQuery.length > 1 && (filteredGlobalLeads.length > 0 || filteredGlobalCampaigns.length > 0) && (
-                        <div className="absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
+                        <div className="absolute right-0 sm:left-0 sm:right-auto mt-2 w-[calc(100vw-2rem)] sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 overflow-hidden">
                             {filteredGlobalCampaigns.length > 0 && (
                                 <div>
                                     <div className="px-3 py-1 bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Campaigns</div>
@@ -241,7 +241,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
                 <div className="relative" ref={dropdownRef}>
                     <div 
                         onClick={() => setDropdownOpen(!dropdownOpen)}
-                        className={`flex items-center gap-3 cursor-pointer p-1.5 rounded-full transition-all ${dropdownOpen ? 'bg-slate-100 ring-2 ring-[#1b57b1]/20' : 'hover:bg-slate-50'}`}
+                        className={`flex items-center gap-2 sm:gap-3 cursor-pointer p-1 rounded-full transition-all ${dropdownOpen ? 'bg-slate-100 ring-2 ring-[#1b57b1]/20' : 'hover:bg-slate-50'}`}
                     >
                         <div className="hidden lg:block text-right">
                             <p className="text-sm font-bold leading-tight text-slate-900">{user?.full_name || session?.user?.email?.split('@')[0] || 'User'}</p>
@@ -262,7 +262,7 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
 
                     {/* Admin Dropdown Menu */}
                     {dropdownOpen && (
-                        <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-lg border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+                        <div className="absolute right-[-4px] mt-2 w-64 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
                             <div className="px-4 py-3 border-b border-slate-100 mb-1 flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200 flex items-center justify-center text-[#1b57b1] font-bold text-xs uppercase">
                                     {user?.avatar_url ? (

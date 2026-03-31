@@ -32,6 +32,7 @@ import {
 import AppContainer from '@/components/layout/AppContainer';
 import { useStore } from '@/store/useStore';
 import { supabase } from '@/lib/supabase';
+import CustomSelect from '@/components/ui/CustomSelect';
 
 const AuditLogs = () => {
     const { user: currentUser, addNotification } = useStore();
@@ -307,7 +308,7 @@ const AuditLogs = () => {
                 </div>
 
                 {/* Combined Filter Bar */}
-                <div className="bg-white border border-slate-200 rounded-xl p-6 shadow-sm">
+                <div className="bg-white border border-slate-200 rounded-xl p-4 sm:p-6 shadow-sm relative z-[20]">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                         <div className="md:col-span-4 relative">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -320,32 +321,31 @@ const AuditLogs = () => {
                             />
                         </div>
                         <div className="md:col-span-2">
-                            <select 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all appearance-none cursor-pointer"
+                            <CustomSelect
                                 value={adminFilter}
-                                onChange={(e) => setAdminFilter(e.target.value)}
-                            >
-                                <option value="All">All admins</option>
-                                {admins.map(admin => (
-                                    <option key={admin.id} value={admin.id}>{admin.full_name || admin.email}</option>
-                                ))}
-                            </select>
+                                onChange={setAdminFilter}
+                                placeholder="All admins"
+                                options={[
+                                    { label: 'All admins', value: 'All' },
+                                    ...admins.map(admin => ({ label: admin.full_name || admin.email, value: admin.id }))
+                                ]}
+                            />
                         </div>
                         <div className="md:col-span-2">
-                            <select 
-                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] transition-all appearance-none cursor-pointer font-bold"
+                            <CustomSelect
                                 value={actionTypeFilter}
-                                onChange={(e) => setActionTypeFilter(e.target.value)}
-                            >
-                                <option value="All">All actions</option>
-                                {[
-                                    'USER_BANNED', 'USER_UNBANNED', 'PLAN_CHANGED', 'SETTING_UPDATED', 
-                                    'IMPERSONATION_START', 'CAMPAIGN_DELETED', 'CAMPAIGN_STATUS_CHANGED',
-                                    'PROFILE_UPDATED', 'PASSWORD_UPDATED', 'DATA_EXTRACTION_SUCCESS'
-                                ].map(a => (
-                                    <option key={a} value={a}>{a.replace(/_/g, ' ')}</option>
-                                ))}
-                            </select>
+                                onChange={setActionTypeFilter}
+                                placeholder="All actions"
+                                isBold
+                                options={[
+                                    { label: 'All actions', value: 'All' },
+                                    ...[
+                                        'USER_BANNED', 'USER_UNBANNED', 'PLAN_CHANGED', 'SETTING_UPDATED', 
+                                        'IMPERSONATION_START', 'CAMPAIGN_DELETED', 'CAMPAIGN_STATUS_CHANGED',
+                                        'PROFILE_UPDATED', 'PASSWORD_UPDATED', 'DATA_EXTRACTION_SUCCESS'
+                                    ].map(a => ({ label: a.replace(/_/g, ' '), value: a }))
+                                ]}
+                            />
                         </div>
                         <div className="md:col-span-4 flex items-center gap-2">
                             <input 
