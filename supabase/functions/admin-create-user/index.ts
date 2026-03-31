@@ -2,81 +2,94 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
 Deno.serve(async (req: Request) => {
-  console.log("DIAGNOSTIC_LOG: Function started", req.method, req.url);
-  
+  // 1. Handle CORS preflight
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const supabaseServiceKey = Deno.env.get('ADMIN_SERVICE_ROLE_KEY') || Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     
     if (!supabaseUrl || !supabaseServiceKey) {
-      throw new Error("Missing environment variables");
+       console.error("DIAGNOSTIC_LOG: Critical - Missing Service Role Key (ADMIN_SERVICE_ROLE_KEY or SUPABASE_SERVICE_ROLE_KEY) or URL");
+       throw new Error("Edge Function configuration error: Missing secrets.");
     }
 
     const authHeader = req.headers.get('Authorization');
-    console.log("DIAGNOSTIC_LOG: Auth Header present:", !!authHeader);
-
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'No authorization header' }), {
-        status: 200,
+      console.warn("DIAGNOSTIC_LOG: No Authorization header provided");
+      return new Response(JSON.stringify({ error: 'Auth header missing' }), {
+        status: 200, // Returning 200 to allow frontend to handle predictably
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    const token = authHeader.replace('Bearer ', '');
+    // Initialize Admin client
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    const token = authHeader.replace('Bearer ', '');
 
-    // 1. Verify requester is a valid user
+    // 2. Manual JWT verification
     const { data: { user: sender }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
     if (authError || !sender) {
-      console.error("DIAGNOSTIC_LOG: Auth Error:", authError?.message);
-      return new Response(JSON.stringify({ 
-        error: 'Unauthorized: Invalid token', 
-        details: authError?.message 
-      }), {
+      console.error("DIAGNOSTIC_LOG: JWT Verification failed:", authError?.message);
+      return new Response(JSON.stringify({ error: 'Invalid or expired token' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log("DIAGNOSTIC_LOG: Sender:", sender.email);
-
-    // 2. Verify requester is an Admin
-    let { data: profile, error: profileError } = await supabaseAdmin
+    // 3. Admin Check
+    const { data: profile } = await supabaseAdmin
       .from('profiles')
       .select('role')
       .eq('id', sender.id)
       .single();
 
-    if (profileError || !profile) {
-       console.error("DIAGNOSTIC_LOG: Profile Error:", profileError);
-    }
-
-    // Relaxed case-insensitive role check
-    const userRole = (profile?.role || '').toLowerCase();
-    console.log("DIAGNOSTIC_LOG: User Role:", userRole);
-
-    if (userRole !== 'admin') {
-      return new Response(JSON.stringify({ 
-        error: 'Forbidden: Admin access required', 
-        currentRole: profile?.role 
-      }), {
+    if (profile?.role?.toLowerCase() !== 'admin') {
+      console.warn("DIAGNOSTIC_LOG: Unauthorized access attempt by:", sender.email);
+      return new Response(JSON.stringify({ error: 'Forbidden: Admin access required' }), {
         status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // 3. Process the action
+    // 4. Process Action
     const body = await req.json();
-    const { type, email, fullName, plan, password, status, userId } = body;
-    console.log("DIAGNOSTIC_LOG: Action Type:", type);
+    const { type, email, fullName, plan, password, status, userId, role } = body;
+    console.log(`DIAGNOSTIC_LOG: Action ${type} for user ${userId || email}`);
+
+    if (type === 'delete-user') {
+      // Robust multi-step deletion
+      console.log("DIAGNOSTIC_LOG: Starting robust deletion data wipe...");
+      
+      const { data: targetProfile } = await supabaseAdmin.from('profiles').select('user_id').eq('id', userId).single();
+      const authId = targetProfile?.user_id || userId;
+
+      // Sequential manual cleanup (ensures all FKs are cleared even if cascade fails)
+      await supabaseAdmin.from('lead_audits').delete().eq('user_id', authId);
+      await supabaseAdmin.from('leads').delete().eq('user_id', authId);
+      await supabaseAdmin.from('campaigns').delete().eq('user_id', authId);
+      await supabaseAdmin.from('subscription_events').delete().eq('user_id', authId);
+      await supabaseAdmin.from('email_logs').delete().eq('user_id', authId);
+      await supabaseAdmin.from('profiles').delete().eq('id', userId);
+
+      // Final Auth deletion
+      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(authId);
+      
+      if (deleteError && !deleteError.message?.includes('User not found')) {
+         throw deleteError;
+      }
+
+      return new Response(JSON.stringify({ success: true, message: 'User wiped successfully' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     if (type === 'create') {
       if (!email) throw new Error("Email is required for creation");
@@ -110,9 +123,9 @@ Deno.serve(async (req: Request) => {
             user_id: authUser.id,
             email: email,
             full_name: fullName,
-            role: 'User',
-            plan: plan || 'starter',
-            status: status || 'Pending Approval'
+            role: role || 'Member',
+            plan: plan || 'Starter',
+            status: status || 'Active'
           });
       }
 
@@ -135,29 +148,13 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    if (type === 'delete-user') {
-      console.log("DIAGNOSTIC_LOG: Deleting user:", userId);
-      const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
-      
-      if (deleteError) {
-        console.warn("DIAGNOSTIC_LOG: Delete Error:", deleteError);
-        // Manual cleanup if cascade fails
-        await supabaseAdmin.from('profiles').delete().eq('id', userId);
-        throw new Error(`Delete failed: ${deleteError.message}`);
-      }
-
-      return new Response(JSON.stringify({ success: true, message: 'User deleted' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({ error: 'Invalid action type', type }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    return new Response(JSON.stringify({ error: 'Action not fully implemented in this diagnostic update' }), {
+       status: 200,
+       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (err: any) {
-    console.error("DIAGNOSTIC_LOG: Final Catch:", err.message);
+    console.error("DIAGNOSTIC_LOG: System error:", err.message);
     return new Response(JSON.stringify({ error: err.message }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

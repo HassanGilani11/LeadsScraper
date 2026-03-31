@@ -51,7 +51,8 @@ const UserManagement = () => {
         email: '',
         password: '',
         plan: 'Starter',
-        status: 'Pending'
+        status: 'Active',
+        role: 'Member'
     });
     const [inviteError, setInviteError] = useState('');
     const [stats, setStats] = useState({
@@ -292,6 +293,8 @@ const UserManagement = () => {
 
         try {
             setLoading(true);
+            console.log("DELETION_DIAGNOSTIC: Deleting user ID:", user.id, "Email:", user.email);
+            
             const { data, error } = await supabase.functions.invoke('admin-create-user', {
                 body: { 
                     type: 'delete-user',
@@ -300,14 +303,33 @@ const UserManagement = () => {
             });
 
             if (error || data?.error) {
+                console.error("DELETION_DIAGNOSTIC: Function Error:", error, data?.error);
                 const errMsg = error?.message || data?.error || 'Failed to delete user';
                 throw new Error(errMsg);
             }
+
+            console.log("DELETION_DIAGNOSTIC: Successfully deleted from backend. Logging audit action...");
+
+            // Log Audit Action
+            await logAuditAction({
+                actionType: 'USER_DELETED',
+                targetEntity: user.email,
+                beforeValue: { 
+                    id: user.id,
+                    email: user.email, 
+                    fullName: user.full_name,
+                    role: user.role,
+                    plan: user.plan
+                },
+                note: `Admin permanently deleted user ${user.full_name} (${user.email}).`
+            });
 
             // Optimistic update
             setUsers(prev => prev.filter(u => u.id !== user.id));
             
             addNotification({ title: 'Success', message: 'User deleted successfully', type: 'success' });
+            
+            // Refetch to ensure stats are updated
             fetchUsers();
         } catch (err: any) {
             console.error("DELETION_ERROR:", err);
@@ -873,7 +895,8 @@ const UserManagement = () => {
                                         password: inviteData.password,
                                         fullName: inviteData.fullName,
                                         plan: inviteData.plan,
-                                        status: inviteData.status
+                                        status: inviteData.status,
+                                        role: inviteData.role
                                     }
                                 });
 
@@ -897,14 +920,15 @@ const UserManagement = () => {
                                         email: inviteData.email,
                                         fullName: inviteData.fullName,
                                         plan: inviteData.plan,
-                                        status: inviteData.status
+                                        status: inviteData.status,
+                                        role: inviteData.role
                                     },
-                                    note: `Admin invited new user ${inviteData.fullName} with ${inviteData.plan} plan.`
+                                    note: `Admin invited new user ${inviteData.fullName} as ${inviteData.role} with ${inviteData.plan} plan.`
                                 });
 
                                 addNotification({ title: 'Success', message: 'User profile created successfully', type: 'success' });
                                 setIsInviteModalOpen(false);
-                                setInviteData({ fullName: '', email: '', password: '', plan: 'Starter', status: 'Active' });
+                                setInviteData({ fullName: '', email: '', password: '', plan: 'Starter', status: 'Active', role: 'Member' });
                                 fetchUsers();
                             } catch (err: any) {
                                 console.error("Error creating user:", err);
@@ -967,6 +991,18 @@ const UserManagement = () => {
                                         <option value="Banned">Banned</option>
                                     </select>
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 block">Role</label>
+                                <select 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-4 focus:ring-[#1b57b1]/10"
+                                    value={inviteData.role}
+                                    onChange={(e) => setInviteData({ ...inviteData, role: e.target.value })}
+                                >
+                                    <option value="Member">Member</option>
+                                    <option value="Admin">Admin</option>
+                                </select>
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 pt-4">
