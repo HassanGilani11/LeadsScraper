@@ -397,7 +397,7 @@ const BulkEmailModal: React.FC<BulkEmailModalProps> = ({
                 {sendStatus !== 'done' && sendStatus !== 'error' && (
                     <div className="px-4 sm:px-6 py-4 border-t border-slate-100 bg-slate-50/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
                         <p className="text-xs text-slate-400 font-medium hidden sm:block">
-                            Sent from <span className="text-slate-600">connect@syntexdev.com</span> · Personalized per lead
+                            Sent from <span className="text-slate-600">sales@syntexdev.com</span> · Personalized per lead
                         </p>
                         <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
                             <button onClick={onClose} className="w-full sm:w-auto px-4 py-2.5 border border-slate-200 rounded-xl text-sm font-bold text-slate-600 hover:bg-slate-100 transition-all text-center">Cancel</button>

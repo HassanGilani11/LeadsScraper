@@ -1018,35 +1018,35 @@ const UserManagement = () => {
             {isDetailModalOpen && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 animate-in fade-in duration-200">
                     <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsDetailModalOpen(false)}></div>
-                    <div className="bg-white rounded-2xl w-full max-w-2xl p-0 relative shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-200 overflow-hidden">
-                        <div className="p-8 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className="w-16 h-16 rounded-full bg-white border-2 border-[#1b57b1] flex items-center justify-center text-[#1b57b1] font-bold text-xl relative overflow-hidden">
+                    <div className="bg-white rounded-2xl w-full max-w-2xl p-0 relative shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-200 overflow-hidden max-h-[95vh] overflow-y-auto">
+                        <div className="p-6 sm:p-8 bg-slate-50 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-0">
+                            <div className="flex items-center gap-4 w-full sm:w-auto">
+                                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-white border-2 border-[#1b57b1] flex items-center justify-center text-[#1b57b1] font-bold text-lg sm:text-xl relative overflow-hidden shrink-0">
                                     {selectedUser?.avatar_url ? (
                                         <img src={selectedUser.avatar_url} className="w-full h-full object-cover" alt="" />
                                     ) : (
                                         selectedUser?.full_name?.split(' ').map((n: string) => n[0]).join('')
                                     )}
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-900">{selectedUser?.full_name}</h3>
-                                    <p className="text-sm text-slate-500 font-medium">{selectedUser?.email}</p>
+                                <div className="min-w-0">
+                                    <h3 className="text-lg sm:text-xl font-bold text-slate-900 truncate">{selectedUser?.full_name}</h3>
+                                    <p className="text-xs sm:text-sm text-slate-500 font-medium truncate">{selectedUser?.email}</p>
                                 </div>
                             </div>
-                            <div className="flex flex-col items-end gap-2">
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${selectedUser?.plan === 'Pro' || selectedUser?.plan === 'Enterprise' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
+                            <div className="flex flex-row sm:flex-col items-center sm:items-end gap-2 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                                <span className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${selectedUser?.plan === 'Pro' || selectedUser?.plan === 'Enterprise' ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-600'}`}>
                                     {selectedUser?.plan} Plan
                                 </span>
-                                <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest ${selectedUser?.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                                <span className={`px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold uppercase tracking-widest whitespace-nowrap ${selectedUser?.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
                                     {selectedUser?.status}
                                 </span>
                             </div>
                         </div>
-                        <div className="p-8 grid grid-cols-2 gap-8">
+                        <div className="p-6 sm:p-8 grid grid-cols-1 md:grid-cols-2 gap-6 sm:gap-8">
                             <div className="space-y-6">
                                 <div>
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Account Overview</h4>
-                                    <div className="bg-slate-50 rounded-xl p-4 border border-slate-100 space-y-3">
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Account Overview</h4>
+                                    <div className="bg-slate-50/50 rounded-xl p-4 border border-slate-100 space-y-4">
                                         <div className="flex justify-between items-center">
                                             <span className="text-xs text-slate-500">Member Since</span>
                                             <span className="text-xs font-bold text-slate-900">
@@ -1061,7 +1061,7 @@ const UserManagement = () => {
                                             <span className="text-xs text-slate-500">Account Role</span>
                                             <span className="text-xs font-bold text-slate-900">{selectedUser?.role || 'Member'}</span>
                                         </div>
-                                        <div className="pt-2 border-t border-slate-100 flex flex-col gap-2 relative z-[30]">
+                                        <div className="pt-3 border-t border-slate-100 flex flex-col gap-2 relative z-[30]">
                                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Update Plan</span>
                                             <CustomSelect
                                                 value={selectedUser?.plan}
@@ -1078,31 +1078,31 @@ const UserManagement = () => {
                             </div>
                             <div className="space-y-6">
                                 <div>
-                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Quick Actions</h4>
-                                    <div className="grid grid-cols-1 gap-2">
-                                        <button onClick={() => { setIsDetailModalOpen(false); handleImpersonate(selectedUser); }} className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2">
-                                            <UserCog size={14} /> Impersonate Account
+                                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">Quick Actions</h4>
+                                    <div className="grid grid-cols-1 gap-2.5">
+                                        <button onClick={() => { setIsDetailModalOpen(false); handleImpersonate(selectedUser); }} className="w-full h-[44px] px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-50 transition-all flex items-center justify-center gap-2.5">
+                                            <UserCog size={16} /> Impersonate Account
                                         </button>
                                         <button 
                                             onClick={() => { setIsDetailModalOpen(false); handleBan(selectedUser); }}
-                                            className="w-full px-4 py-2 bg-white border border-slate-200 rounded-lg text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all flex items-center justify-center gap-2"
+                                            className="w-full h-[44px] px-4 bg-white border border-slate-200 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 transition-all flex items-center justify-center gap-2.5"
                                         >
-                                            <Ban size={14} /> {selectedUser?.status === 'Active' ? 'Suspend Account' : 'Lift Suspension'}
+                                            <Ban size={16} /> {selectedUser?.status === 'Active' ? 'Suspend Account' : 'Lift Suspension'}
                                         </button>
                                         {(selectedUser?.status === 'Pending Approval' || selectedUser?.status === 'Pending') && (
                                             <button 
                                                 onClick={() => { setIsDetailModalOpen(false); handleApproveUser(selectedUser); }}
-                                                className="w-full px-4 py-2 bg-emerald-600 rounded-lg text-xs font-bold text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                                                className="w-full h-[44px] px-4 bg-emerald-600 rounded-xl text-xs font-bold text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2.5 shadow-lg shadow-emerald-600/10"
                                             >
-                                                <UserCheck size={14} /> Approve User Account
+                                                <UserCheck size={16} /> Approve Account
                                             </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div className="px-8 py-6 bg-slate-50 border-t border-slate-100 flex justify-end">
-                            <button onClick={() => setIsDetailModalOpen(false)} className="px-6 py-2.5 bg-[#1b57b1] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#1b57b1]/20 hover:bg-[#154690] transition-all">Done</button>
+                        <div className="px-6 sm:px-8 py-4 sm:py-6 bg-slate-50 border-t border-slate-100 flex flex-col sm:flex-row justify-end">
+                            <button onClick={() => setIsDetailModalOpen(false)} className="w-full sm:w-auto px-8 py-3 bg-[#1b57b1] text-white rounded-xl text-sm font-bold shadow-lg shadow-[#1b57b1]/20 hover:bg-[#154690] transition-all">Done</button>
                         </div>
                     </div>
                 </div>

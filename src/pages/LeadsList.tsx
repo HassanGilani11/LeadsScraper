@@ -520,12 +520,23 @@ const LeadsList = () => {
     };
             
     const handleDownloadSampleCSV = () => {
-        const headers = ['First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 'Source', 'Date Created'];
-        const sampleData = ['John', 'Doe', 'john.doe@example.com', 'Example Corp', 'New', 'Technology', '85', 'csv', new Date().toISOString().split('T')[0]];
+        const headers = [
+            'First Name', 'Last Name', 'Email', 'Company', 'Status', 'Industry', 'ICP Score', 
+            'Phone', 'Website', 'LinkedIn', 'Facebook', 'Twitter', 'Instagram', 'YouTube', 'Pinterest', 'Snapchat', 
+            'WhatsApp', 'TikTok', 'Telegram', 'Skype', 'Contact Page', 'About Page',
+            'Logo URL', 'Description', 'Founded Year', 'Technographics', 'Meta Title', 'Meta Description', 'Keywords', 'Language', 'Career Page', 'Open Positions'
+        ];
+        
+        const sampleData = [
+            'John', 'Doe', 'john.doe@example.com', 'Example Corp', 'New', 'Technology', '85',
+            '+1234567890', 'https://example.com', 'https://linkedin.com/in/johndoe', 'https://facebook.com/example', 'https://twitter.com/example', 'https://instagram.com/example', 'https://youtube.com/example', 'https://pinterest.com/example', 'https://snapchat.com/add/example',
+            '+1234567890', 'https://tiktok.com/@example', 'https://t.me/example', 'johndoe_skype', 'https://example.com/contact', 'https://example.com/about',
+            'https://example.com/logo.png', 'A leading example corporation.', '2010', 'React; Node.js; AWS', 'Example Corp | Home', 'Leading example corp meta description', 'example; business; leads', 'English', 'https://example.com/careers', '5'
+        ];
         
         const csvContent = '\uFEFF' + [
             headers.join(','),
-            sampleData.map(cell => `"${cell.replace(/"/g, '""')}"`).join(',')
+            sampleData.map(cell => `"${String(cell || '').replace(/"/g, '""')}"`).join(',')
         ].join('\n');
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
