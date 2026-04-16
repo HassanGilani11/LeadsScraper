@@ -67,7 +67,7 @@ Deno.serve(async (req: Request) => {
               'Authorization': `Bearer ${resendKey}`,
             },
             body: JSON.stringify({
-              from: 'Leads Scraper <onboarding@resend.dev>', // Should be a verified domain in production
+              from: 'SyntexDev <onboarding@resend.dev>', // Should be a verified domain in production
               to: email,
               subject: 'Registration Received - Pending Approval',
               html: `<h1>Welcome, ${fullName}!</h1><p>Your registration for the Leads Scraper platform has been received and is currently pending administrator approval. You will receive another email once your account has been activated.</p>`,

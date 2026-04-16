@@ -55,7 +55,7 @@ const Terms = () => {
                             <section className="mb-12">
                                 <h2 className="text-2xl font-bold text-slate-900 mb-4">1. Acceptance of Terms</h2>
                                 <p className="text-slate-600 leading-relaxed">
-                                    By accessing or using Leads Scraper, you agree to be bound by these Terms of Service. If you do not agree to all of these terms, do not access or use the services.
+                                    By accessing or using SyntexDev, you agree to be bound by these Terms of Service. If you do not agree to all of these terms, do not access or use the services.
                                 </p>
                             </section>
 
@@ -76,14 +76,14 @@ const Terms = () => {
                             <section className="mb-12">
                                 <h2 className="text-2xl font-bold text-slate-900 mb-4">4. Intellectual Property</h2>
                                 <p className="text-slate-600 leading-relaxed">
-                                    Leads Scraper and its original content, features, and functionality are and will remain the exclusive property of Leads Scraper and its licensors.
+                                    SyntexDev and its original content, features, and functionality are and will remain the exclusive property of SyntexDev and its licensors.
                                 </p>
                             </section>
 
                             <section className="mb-12">
                                 <h2 className="text-2xl font-bold text-slate-900 mb-4">5. Limitation of Liability</h2>
                                 <p className="text-slate-600 leading-relaxed">
-                                    In no event shall Leads Scraper, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages.
+                                    In no event shall SyntexDev, nor its directors, employees, partners, agents, suppliers, or affiliates, be liable for any indirect, incidental, special, consequential, or punitive damages.
                                 </p>
                             </section>
                         </div>

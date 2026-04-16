@@ -17,7 +17,7 @@ const LandingFooter = () => {
                     <Link to="/terms" className="hover:text-slate-900 transition-colors">Terms</Link>
                     <Link to="/contact" className="hover:text-slate-900 transition-colors">Contact</Link>
                 </div>
-                <p className="text-sm text-slate-400 font-medium">&copy; {new Date().getFullYear()} Leads Scraper. Built for Growth.</p>
+                <p className="text-sm text-slate-400 font-medium">&copy; {new Date().getFullYear()} SyntexDev. Built for Growth.</p>
             </div>
         </footer>
     );

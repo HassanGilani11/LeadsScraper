@@ -99,7 +99,7 @@ const Auth = () => {
 
     const getTitle = () => {
         if (isForgot) return 'Reset Password';
-        return isLogin ? 'Leads Scraper' : 'Join Leads Scraper';
+        return isLogin ? 'SyntexDev' : 'Join SyntexDev';
     };
 
     const getSubtitle = () => {

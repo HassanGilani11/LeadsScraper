@@ -106,7 +106,7 @@ const LandingPage = () => {
                         transition={{ delay: 0.5 }}
                         className="max-w-2xl mx-auto text-lg md:text-xl text-slate-500 font-medium mb-12 leading-relaxed"
                     >
-                        Leads Scraper v3 goes beyond simple extraction. Perform instant **Website Health Audits**, generate **White-Label PDF Reports**, and leverage AI-driven ICP scoring.
+                        SyntexDev v3 goes beyond simple extraction. Perform instant **Website Health Audits**, generate **White-Label PDF Reports**, and leverage AI-driven ICP scoring.
                     </motion.p>
                     
                     <motion.div 
@@ -252,7 +252,7 @@ const LandingPage = () => {
                         Ready to supercharge <br /> your lead generation?
                     </h2>
                     <p className="text-xl text-slate-400 font-medium mb-12">
-                        Join 2,000+ sales leaders using Leads Scraper to fuel their growth.
+                        Join 2,000+ sales leaders using SyntexDev to fuel their growth.
                     </p>
                     <button 
                         onClick={() => navigate('/auth')}
@@ -274,7 +274,7 @@ const LandingPage = () => {
                                 <span className="text-[#1b57b1]">lead opportunities.</span>
                             </h2>
                             <p className="text-lg text-slate-600 font-medium leading-relaxed">
-                                Whether you're targeting B2B companies on LinkedIn or local businesses on Google Maps, Leads Scraper provides the precision tools you need to build high-converting lists.
+                                Whether you're targeting B2B companies on LinkedIn or local businesses on Google Maps, SyntexDev provides the precision tools you need to build high-converting lists.
                             </p>
                             
                             <div className="space-y-4">
@@ -334,7 +334,7 @@ const LandingPage = () => {
                     <div className="text-center max-w-3xl mx-auto mb-20">
                         <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-6 leading-tight">
                             Why smarter teams <br />
-                            <span className="text-[#1b57b1]">choose Leads Scraper.</span>
+                            <span className="text-[#1b57b1]">choose SyntexDev.</span>
                         </h2>
                         <p className="text-lg text-slate-500 font-medium leading-relaxed">
                             Stop settled for generic scrapers. See how we compare to traditional lead generation methods.
@@ -348,7 +348,7 @@ const LandingPage = () => {
                                     <tr>
                                         <th className="text-left py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-white rounded-tl-[2rem] border-l border-t border-slate-100 shadow-sm">Features</th>
                                         <th className="text-center py-4 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 bg-white border-t border-slate-100 shadow-sm">Traditional Tools</th>
-                                        <th className="text-center py-6 px-6 text-xs font-black uppercase tracking-[0.2em] text-white bg-[#1b57b1] rounded-tr-[2rem] shadow-2xl relative z-20">Leads Scraper</th>
+                                        <th className="text-center py-6 px-6 text-xs font-black uppercase tracking-[0.2em] text-white bg-[#1b57b1] rounded-tr-[2rem] shadow-2xl relative z-20">SyntexDev</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-transparent">

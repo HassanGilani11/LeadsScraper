@@ -196,14 +196,10 @@ const BulkEmailModal: React.FC<BulkEmailModalProps> = ({
         if (!canSend) return;
         setSendStatus('sending');
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-            const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-            const res = await fetch(`${supabaseUrl}/functions/v1/send-bulk-email`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                body: JSON.stringify({
+            console.log('DIAGNOSTIC: Invoking send-bulk-email function via supabase client.');
+            
+            const { data, error } = await supabase.functions.invoke('send-bulk-email', {
+                body: {
                     leads: recipients.map(l => ({
                         id: l.id, email: l.email,
                         first_name: l.first_name, last_name: l.last_name, company: l.company,
@@ -214,11 +210,16 @@ const BulkEmailModal: React.FC<BulkEmailModalProps> = ({
                     from_name: fromName,
                     reply_to: replyTo,
                     user_id: userId,
-                }),
+                },
             });
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Failed to send emails');
+            if (error) {
+                // Supabase throw a specific error object if invoke fails
+                console.error('DIAGNOSTIC: Invoke error:', error);
+                throw new Error(error.message || 'Failed to send emails');
+            }
+
+            if (!data) throw new Error('No response data from function');
 
             setResult(data);
             setSendStatus('done');
@@ -231,7 +232,7 @@ const BulkEmailModal: React.FC<BulkEmailModalProps> = ({
             
             onSuccess(data.sent);
         } catch (err) {
-            console.error(err);
+            console.error('DIAGNOSTIC: Caught error in handleSend:', err);
             const msg = err instanceof Error ? err.message : 'Failed to send emails';
             setSendError(msg);
             setSendStatus('error');
@@ -250,7 +251,9 @@ const BulkEmailModal: React.FC<BulkEmailModalProps> = ({
                             <Mail size={18} />
                         </div>
                         <div>
-                            <h2 className="text-base font-bold text-slate-900">Bulk Email</h2>
+                            <h2 className="text-base font-bold text-slate-900">
+                                {recipients.length === 1 ? 'Send Email' : 'Bulk Outreach'}
+                            </h2>
                             <p className="text-xs text-slate-500 font-medium">
                                 Sending to <span className="text-[#1b57b1] font-bold">{recipients.length}</span> {recipients.length === 1 ? 'lead' : 'leads'}
                                 {selectedIds.length === 0 && leads.length > 0 && ' (all leads)'}

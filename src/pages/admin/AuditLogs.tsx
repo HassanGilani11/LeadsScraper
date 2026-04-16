@@ -68,20 +68,21 @@ const AuditLogs = () => {
     useEffect(() => {
         if (currentUser?.role === 'Admin') {
             fetchLogs();
-            fetchAdmins();
+            fetchUsers();
             fetchStats();
         }
     }, [currentUser, actionTypeFilter, adminFilter, dateRange, categoryFilter, page, debouncedSearchTerm]);
 
-    const fetchAdmins = async () => {
+    const fetchUsers = async () => {
         try {
+            // Fetch all profiles so admin can filter by any user
             const { data, error } = await supabase
                 .from('profiles')
                 .select('id, full_name, email')
-                .eq('role', 'Admin');
+                .order('full_name');
             if (data) setAdmins(data);
         } catch (err) {
-            console.error('Error fetching admins:', err);
+            console.error('Error fetching users:', err);
         }
     };
 

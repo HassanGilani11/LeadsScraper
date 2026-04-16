@@ -6,7 +6,7 @@ const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? "";
 const SMTP_PORT = parseInt(Deno.env.get("SMTP_PORT") ?? "465");
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
 const SMTP_PASS = Deno.env.get("SMTP_PASS") ?? "";
-const SMTP_FROM_NAME = Deno.env.get("SMTP_FROM_NAME") ?? "Leads Scraper Support";
+const SMTP_FROM_NAME = Deno.env.get("SMTP_FROM_NAME") ?? "SyntexDev Support";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -107,9 +107,44 @@ serve(async (req: Request) => {
             ${message}
           </div>
           
-          <div style="margin-top: 32px; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px;">
-            This email was sent from the Leads Scraper contact form engine.
+        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+          <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size:14px; color:#222222; width: 100%;">
+            <tbody>
+              <tr>
+                <td style="vertical-align:middle;padding-right:12px; width: 210px;">
+                  <img src="http://syntexdev.com/wp-content/uploads/2023/12/Gemini_Generated_Image_t2muftt2muftt2mu-removebg-preview.png" alt="SyntexDev" width="200" style="display:block;border:0;outline:none;text-decoration:none;">
+                </td>
+                <td style="vertical-align:middle;">
+                  <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">
+                    <tbody>
+                      <tr>
+                        <td style="font-weight:700; font-size:16px; color:#111111; padding-bottom:3px;">Syed Hassan Gillani</td>
+                      </tr>
+                      <tr>
+                        <td style="color:#666666; padding-bottom:8px;">Co-Founder | SyntexDev</td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom:6px;">
+                          <span style="color:#111111; font-weight:600;">Email:</span>
+                          <a href="mailto:sales@syntexdev.com" style="color:#1a73e8; text-decoration:none;">sales@syntexdev.com</a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom:6px;">
+                          <span style="color:#111111; font-weight:600;">Web:</span>
+                          <a href="https://syntexdev.com" style="color:#1a73e8; text-decoration:none;">syntexdev.com</a>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+          <div style="margin-top: 10px; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+            This email was sent from the SyntexDev contact form engine.
           </div>
+        </div>
         </div>
       `,
     };

@@ -48,8 +48,8 @@ const App = () => {
     useEffect(() => {
         if (siteSettings) {
             document.title = siteSettings.meta_description 
-                ? `${siteSettings.site_title || 'Leads Scraper'} - ${siteSettings.meta_description}`
-                : (siteSettings.site_title || 'Leads Scraper');
+                ? `${siteSettings.site_title || 'SyntexDev'} - ${siteSettings.meta_description}`
+                : (siteSettings.site_title || 'SyntexDev');
             
             // Meta Description
             let metaDesc = document.querySelector('meta[name="description"]');

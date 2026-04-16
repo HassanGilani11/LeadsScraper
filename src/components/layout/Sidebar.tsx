@@ -78,7 +78,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
                     </div>
                     <div className="flex flex-col">
                         <h1 className="text-sm font-bold leading-tight text-slate-900 truncate max-w-[140px]">
-                            {siteSettings?.site_title || 'Leads Scraper'}
+                            {siteSettings?.site_title || 'SyntexDev'}
                         </h1>
                         <span className="text-[10px] font-semibold bg-[#1b57b1]/10 text-[#1b57b1] px-1.5 py-0.5 rounded uppercase tracking-wider block w-fit">
                             {user?.plan || 'Starter'} Plan

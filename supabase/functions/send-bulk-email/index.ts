@@ -1,5 +1,4 @@
 // @ts-nocheck
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "@supabase/supabase-js";
 import nodemailer from "npm:nodemailer@6.9.7";
 
@@ -7,7 +6,7 @@ const SMTP_HOST = Deno.env.get("SMTP_HOST") ?? "";
 const SMTP_PORT = parseInt(Deno.env.get("SMTP_PORT") ?? "465");
 const SMTP_USER = Deno.env.get("SMTP_USER") ?? "";
 const SMTP_PASS = Deno.env.get("SMTP_PASS") ?? "";
-const SMTP_FROM_NAME = Deno.env.get("SMTP_FROM_NAME") ?? "Leads Scraper";
+const SMTP_FROM_NAME = Deno.env.get("SMTP_FROM_NAME") ?? "Syed Hassan Gillani | SyntexDev";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -87,16 +86,28 @@ function textToHtml(text: string): string {
 </html>`;
 }
 
-serve(async (req: Request) => {
+Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
+    console.log("DIAGNOSTIC: Function execution started.");
+    
+    // Log environment variable status (presence only for security)
+    console.log("DIAGNOSTIC: Environment variables check:", {
+      SMTP_HOST: !!SMTP_HOST,
+      SMTP_PORT: SMTP_PORT,
+      SMTP_USER: !!SMTP_USER,
+      SMTP_PASS: !!SMTP_PASS,
+      SUPABASE_URL: !!SUPABASE_URL,
+    });
+
     const payload: SendBulkEmailPayload = await req.json();
     const { leads, subject, body, html_body, from_name, reply_to, user_id } = payload;
 
     if (!leads?.length || !subject || !body || !from_name || !user_id) {
+      console.warn("DIAGNOSTIC: Missing required fields in payload.");
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -104,32 +115,34 @@ serve(async (req: Request) => {
     }
 
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+      console.error("DIAGNOSTIC: SMTP credentials missing from environment.");
       return new Response(
-        JSON.stringify({ error: "SMTP credentials not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS as Supabase secrets." }),
+        JSON.stringify({ error: "SMTP credentials not configured. Please set SMTP_HOST, SMTP_USER, and SMTP_PASS in Supabase Secrets." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     // Create reusable SMTP transporter
+    console.log(`DIAGNOSTIC: Initializing transporter with host: ${SMTP_HOST}, port: ${SMTP_PORT}`);
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: SMTP_PORT,
-      secure: SMTP_PORT === 465, // true for 465, false for 587
+      secure: SMTP_PORT === 465, // SSL for 465, TLS/None for 587 or 25
       auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
       },
-      connectionTimeout: 10000,
-      greetingTimeout: 5000,
+      connectionTimeout: 15000, // Slightly longer timeout
+      greetingTimeout: 10000,
     });
     
     // Verify connection configuration
     try {
-      console.log("Verifying SMTP connection...");
+      console.log("DIAGNOSTIC: Verifying SMTP connection...");
       await transporter.verify();
-      console.log("SMTP connection verified successfully.");
+      console.log("DIAGNOSTIC: SMTP connection verified successfully.");
     } catch (verifyErr: any) {
-      console.error("SMTP Verification Error:", verifyErr);
+      console.error("DIAGNOSTIC: SMTP Verification Failure:", verifyErr);
       return new Response(
         JSON.stringify({ error: `SMTP Connection Failed: ${verifyErr.message || String(verifyErr)}` }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -153,13 +166,61 @@ serve(async (req: Request) => {
         : textToHtml(personalizedBody);
 
       try {
-        console.log(`Sending email to ${lead.email} with subject: ${personalizedSubject}`);
+        console.log(`DIAGNOSTIC: Sending email to ${lead.email}`);
         
-        const footerText = `\n\n---\nSent by ${displayName}\nTo unsubscribe, please reply to this email.`;
-        const footerHtml = `<div style="margin-top: 32px; padding-top: 16px; border-t: 1px solid #eee; color: #94a3b8; font-size: 12px;">
-          <p>Sent by ${displayName} via Stitch AI Leads Scraper</p>
-          <p>To unsubscribe, please reply to this email with "Unsubscribe" in the subject.</p>
-        </div>`;
+        const footerText = `\n\n---\nSent by Syed Hassan Gillani | SyntexDev\nsales@syntexdev.com`;
+        const footerHtml = `
+<div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #eee;">
+  <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size:14px; color:#222222;">
+    <tbody>
+      <tr>
+        <td style="vertical-align:middle;padding-right:12px;">
+          <img src="http://syntexdev.com/wp-content/uploads/2023/12/Gemini_Generated_Image_t2muftt2muftt2mu-removebg-preview.png" alt="SyntexDev" width="200" style="display:block;border:0;outline:none;text-decoration:none;">
+        </td>
+        <td style="vertical-align:middle;">
+          <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">
+            <tbody>
+              <tr>
+                <td style="font-weight:700; font-size:16px; color:#111111; padding-bottom:3px;">Syed Hassan Gillani</td>
+              </tr>
+              <tr>
+                <td style="color:#666666; padding-bottom:8px;">Co-Founder | SyntexDev</td>
+              </tr>
+              <tr>
+                <td style="padding-bottom:6px;">
+                  <span style="color:#111111; font-weight:600;">Email:</span>
+                  <a href="mailto:sales@syntexdev.com" style="color:#1a73e8; text-decoration:none;">sales@syntexdev.com</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-bottom:6px;">
+                  <span style="color:#111111; font-weight:600;">Phone:</span>
+                  <a href="tel:+61475709822" style="color:#1a73e8; text-decoration:none;">+61 4757 09822</a>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-bottom:8px;">
+                  <span style="color:#111111; font-weight:600;">Web:</span>
+                  <a href="https://syntexdev.com" style="color:#1a73e8; text-decoration:none;">syntexdev.com</a>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding-top:10px; font-size:11px; color:#888888; line-height: 1.4;">
+          <i>SyntexDev — Web Development · Shopify · Custom SaaS · AI & Automation</i>
+        </td>
+      </tr>
+      <tr>
+        <td colspan="2" style="padding-top:8px; font-size:10px; color:#999999; line-height: 1.4;">
+          <small>Disclaimer: This message and any attachments are confidential and intended only for the named recipient.</small>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>`;
 
         await transporter.sendMail({
           from: {
@@ -176,7 +237,7 @@ serve(async (req: Request) => {
           }
         });
 
-        console.log(`Successfully sent email to ${lead.email}`);
+        console.log(`DIAGNOSTIC: Successfully sent email to ${lead.email}`);
         sent++;
         logRows.push({
           user_id,
@@ -189,6 +250,7 @@ serve(async (req: Request) => {
       } catch (err: unknown) {
         failed++;
         const message = err instanceof Error ? err.message : String(err);
+        console.error(`DIAGNOSTIC: Failed to send to ${lead.email}:`, message);
         errors.push(`${lead.email}: ${message}`);
         logRows.push({
           user_id,
@@ -212,7 +274,8 @@ serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : "Unexpected error";
+    const message = err instanceof Error ? err.message : "Unexpected error during function execution";
+    console.error("DIAGNOSTIC: Critical failure:", message);
     return new Response(
       JSON.stringify({ error: message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

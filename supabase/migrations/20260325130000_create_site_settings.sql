@@ -1,7 +1,7 @@
 -- Create site_settings table
 CREATE TABLE site_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    site_title TEXT NOT NULL DEFAULT 'Leads Scraper',
+    site_title TEXT NOT NULL DEFAULT 'SyntexDev',
     meta_description TEXT NOT NULL DEFAULT 'AI Powered B2B Lead Generation',
     favicon_url TEXT,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -42,7 +42,7 @@ CREATE POLICY "Site settings are insertable by admins"
 
 -- Insert default row
 INSERT INTO site_settings (site_title, meta_description)
-VALUES ('Leads Scraper', 'AI Powered B2B Lead Generation')
+VALUES ('SyntexDev', 'AI Powered B2B Lead Generation')
 ON CONFLICT DO NOTHING;
 
 -- ── STORAGE POLICIES FOR 'Settings' BUCKET ──

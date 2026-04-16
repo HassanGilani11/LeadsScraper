@@ -553,7 +553,7 @@ const Settings = () => {
                                             type="text" 
                                             value={siteTitle} 
                                             onChange={(e) => setSiteTitle(e.target.value)}
-                                            placeholder="e.g. Leads Scraper - Admin Console"
+                                            placeholder="e.g. SyntexDev - Admin Console"
                                             className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm" 
                                         />
                                         <p className="text-xs text-slate-500 font-medium">This will be displayed in the browser tab and search engines.</p>
@@ -594,7 +594,7 @@ const Settings = () => {
                                         if (activeTab === 'profile') {
                                             setFirstName(user?.full_name?.split(' ')[0] || '');
                                             setLastName(user?.full_name?.split(' ').slice(1).join(' ') || '');
-                                            setCompany('Stitch AI');
+                                            setCompany(user?.company || '');
                                         } else if (activeTab === 'security') {
                                             setNewPassword('');
                                             setConfirmPassword('');
