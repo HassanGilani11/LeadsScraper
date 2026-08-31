@@ -74,10 +74,20 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
     };
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        setDropdownOpen(false);
         setSession(null);
         setUser(null);
-        navigate('/auth');
+        setCampaigns([]);
+        setLeads([]);
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error('Sign out error:', err);
+        } finally {
+            localStorage.clear();
+            sessionStorage.clear();
+            navigate('/auth', { replace: true });
+        }
     };
 
     const handleSearchKeyDown = (e: React.KeyboardEvent) => {

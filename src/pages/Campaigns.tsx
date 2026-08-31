@@ -26,6 +26,7 @@ import CreateCampaignModal from '@/components/modals/CreateCampaignModal';
 import CampaignAnalyticsModal from '@/components/modals/CampaignAnalyticsModal';
 import { logAuditAction } from '@/utils/auditLogger';
 import CustomSelect from '@/components/ui/CustomSelect';
+import { toast } from 'sonner';
 
 const Campaigns = () => {
     const { campaigns, setCampaigns, addCampaign, user, searchQuery, setSearchQuery } = useStore();
@@ -116,7 +117,8 @@ const Campaigns = () => {
             if (error) throw error;
             if (data) {
                 addCampaign(data);
-                await logAuditAction({
+                toast.success('Campaign duplicated successfully');
+                logAuditAction({
                     actionType: 'CAMPAIGN_DUPLICATED',
                     targetEntity: data.name,
                     beforeValue: {},
@@ -126,11 +128,11 @@ const Campaigns = () => {
                         campaignId: data.id, 
                         sourceCampaignId: campaign.id 
                     }
-                });
+                }).catch(err => console.error('Audit log error:', err));
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error duplicating campaign:', err);
-            alert('Failed to duplicate campaign.');
+            toast.error(err.message || 'Failed to duplicate campaign.');
         }
     };
 
@@ -173,18 +175,20 @@ const Campaigns = () => {
             setCampaigns(campaigns.map(c => 
                 c.id === id ? { ...c, status: nextStatus } : c
             ));
+            toast.success(`Campaign ${nextStatus === 'running' ? 'started' : 'paused'}`);
 
             const campaign = campaigns.find(c => c.id === id);
-            await logAuditAction({
+            logAuditAction({
                 actionType: 'CAMPAIGN_STATUS_CHANGED',
                 targetEntity: campaign?.name,
                 beforeValue: { status: currentStatus },
                 afterValue: { status: nextStatus },
                 note: `Campaign status changed to ${nextStatus}`,
                 metadata: { campaignId: id }
-            });
-        } catch (err) {
+            }).catch(err => console.error('Audit log error:', err));
+        } catch (err: any) {
             console.error('Error toggling campaign status:', err);
+            toast.error(err.message || 'Failed to update campaign status');
         }
     };
 
@@ -201,17 +205,19 @@ const Campaigns = () => {
 
             const campaign = campaigns.find(c => c.id === id);
             setCampaigns(campaigns.filter(c => c.id !== id));
+            toast.success('Campaign deleted successfully');
 
-            await logAuditAction({
+            logAuditAction({
                 actionType: 'CAMPAIGN_DELETED',
                 targetEntity: campaign?.name,
                 beforeValue: { name: campaign?.name, status: campaign?.status },
                 afterValue: {},
                 note: `Campaign ${campaign?.name} deleted`,
                 metadata: { campaignId: id }
-            });
-        } catch (err) {
+            }).catch(err => console.error('Audit log error:', err));
+        } catch (err: any) {
             console.error('Error deleting campaign:', err);
+            toast.error(err.message || 'Failed to delete campaign');
         }
     };
 

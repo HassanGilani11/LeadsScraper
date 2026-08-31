@@ -40,14 +40,24 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const pathname = location.pathname;
-    const { user, setUser, setSession, siteSettings } = useStore();
+    const { user, setUser, setSession, siteSettings, setCampaigns, setLeads } = useStore();
     const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
     const handleLogout = async () => {
-        await supabase.auth.signOut();
+        onClose();
         setSession(null);
         setUser(null);
-        navigate('/auth');
+        setCampaigns([]);
+        setLeads([]);
+        try {
+            await supabase.auth.signOut();
+        } catch (err) {
+            console.error('Sign out error:', err);
+        } finally {
+            localStorage.clear();
+            sessionStorage.clear();
+            navigate('/auth', { replace: true });
+        }
     };
 
     const creditPercentage = user ? Math.round((user.credits / user.max_credits) * 100) : 0;

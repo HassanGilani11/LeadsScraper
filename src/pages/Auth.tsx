@@ -16,7 +16,7 @@ const Auth = () => {
     
     const navigate = useNavigate();
     const location = useLocation();
-    const setSession = useStore((state) => state.setSession);
+    const { setSession, setUser } = useStore();
 
     // Get message or error from navigation state
     React.useEffect(() => {
@@ -51,19 +51,37 @@ const Auth = () => {
                 });
                 if (error) throw error;
                 if (data.session) {
-                    // Verify account status
+                    // Fetch profile to verify account status and load Admin role / Enterprise plan
                     const { data: profile } = await supabase
                         .from('profiles')
-                        .select('status')
+                        .select('*')
                         .eq('id', data.session.user.id)
                         .single();
 
-                    if (profile?.status !== 'Active') {
+                    if (profile && profile.status !== 'Active') {
                         await supabase.auth.signOut();
-                        const message = profile?.status === 'Banned' 
+                        const message = profile.status === 'Banned' 
                             ? 'Your account has been suspended. Please contact support.' 
                             : 'Your account is pending administrator approval. You will be notified via email once approved.';
                         throw new Error(message);
+                    }
+
+                    if (profile) {
+                        setUser({
+                            id: profile.id,
+                            email: profile.email,
+                            full_name: profile.full_name || '',
+                            role: profile.role || 'Member',
+                            plan: profile.plan || 'Starter',
+                            credits: profile.credits || 0,
+                            max_credits: profile.max_credits || (profile.plan === 'Enterprise' ? 500 : profile.plan === 'Pro' ? 100 : 20),
+                            company: profile.company || '',
+                            avatar_url: profile.avatar_url || '',
+                            last_reset_date: profile.last_reset_date,
+                            status: profile.status || 'Active',
+                            webhook_url: profile.webhook_url || '',
+                            webhook_enabled: profile.webhook_enabled || false
+                        });
                     }
 
                     setSession(data.session);

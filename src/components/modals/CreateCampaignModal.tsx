@@ -20,6 +20,7 @@ import {
     Mail,
     ChevronRight
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { logAuditAction } from '@/utils/auditLogger';
 
 interface CreateCampaignModalProps {
@@ -99,6 +100,11 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({ open, onClose
                 target_keywords: tags,
             } as any;
 
+            // Only consider sequence steps that have actual content
+            const validSteps = steps.filter(
+                s => (s.subject && s.subject.trim().length > 0) || (s.body_html && s.body_html.trim().length > 0)
+            );
+
             if (campaign) {
                 // Update Campaign
                 const { data, error } = await supabase
@@ -111,25 +117,42 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({ open, onClose
                 if (error) throw error;
 
                 if (data) {
-                    // Update Steps
-                    await supabase.from('campaign_steps').delete().eq('campaign_id', campaign.id);
-                    const stepsToInsert = steps.map(s => ({
-                        campaign_id: data.id,
-                        user_id: user.id,
-                        step_number: s.step_number,
-                        subject: s.subject || 'No Subject',
-                        body_html: s.body_html || '',
-                        delay_days: s.delay_days || 0
-                    }));
-                    await supabase.from('campaign_steps').insert(stepsToInsert);
-
-                    updateCampaign({
+                    const updatedCampaign = {
                         ...data,
-                        leads: campaign.leads,
+                        leads: campaign.leads || 0,
                         tags: data.target_keywords || []
-                    });
-                    
+                    };
+                    updateCampaign(updatedCampaign);
                     onClose();
+                    toast.success('Campaign updated successfully!');
+
+                    // Background: update steps & audit log
+                    (async () => {
+                        try {
+                            await supabase.from('campaign_steps').delete().eq('campaign_id', campaign.id);
+                            if (validSteps.length > 0) {
+                                const stepsToInsert = validSteps.map((s, idx) => ({
+                                    campaign_id: data.id,
+                                    user_id: user.id,
+                                    step_number: idx + 1,
+                                    subject: s.subject?.trim() || `Step ${idx + 1}`,
+                                    body_html: s.body_html || '',
+                                    delay_days: s.delay_days || 0
+                                }));
+                                await supabase.from('campaign_steps').insert(stepsToInsert);
+                            }
+                            await logAuditAction({
+                                actionType: 'CAMPAIGN_UPDATED',
+                                targetEntity: data.name,
+                                beforeValue: { name: campaign.name, status: campaign.status, description: campaign.description },
+                                afterValue: { name: data.name, status: data.status, description: data.description },
+                                note: `Campaign ${data.name} updated`,
+                                metadata: { campaignId: data.id }
+                            });
+                        } catch (bgErr) {
+                            console.error('Background steps/audit update error:', bgErr);
+                        }
+                    })();
                 }
             } else {
                 // Create Campaign
@@ -142,28 +165,46 @@ const CreateCampaignModal: React.FC<CreateCampaignModalProps> = ({ open, onClose
                 if (error) throw error;
 
                 if (data) {
-                    // Insert Steps
-                    const stepsToInsert = steps.map(s => ({
-                        campaign_id: data.id,
-                        user_id: user.id,
-                        step_number: s.step_number,
-                        subject: s.subject || 'No Subject',
-                        body_html: s.body_html || '',
-                        delay_days: s.delay_days || 0
-                    }));
-                    await supabase.from('campaign_steps').insert(stepsToInsert);
-
-                    addCampaign({
+                    const newCampaign = {
                         ...data,
                         leads: 0,
                         tags: data.target_keywords || []
-                    });
-
+                    };
+                    addCampaign(newCampaign);
                     onClose();
+                    toast.success('Campaign created successfully!');
+
+                    // Background: insert steps (if any) & log audit
+                    (async () => {
+                        try {
+                            if (validSteps.length > 0) {
+                                const stepsToInsert = validSteps.map((s, idx) => ({
+                                    campaign_id: data.id,
+                                    user_id: user.id,
+                                    step_number: idx + 1,
+                                    subject: s.subject?.trim() || `Step ${idx + 1}`,
+                                    body_html: s.body_html || '',
+                                    delay_days: s.delay_days || 0
+                                }));
+                                await supabase.from('campaign_steps').insert(stepsToInsert);
+                            }
+                            await logAuditAction({
+                                actionType: 'CAMPAIGN_CREATED',
+                                targetEntity: data.name,
+                                beforeValue: {},
+                                afterValue: { name: data.name, status: data.status, description: data.description },
+                                note: `Campaign ${data.name} created`,
+                                metadata: { campaignId: data.id }
+                            });
+                        } catch (bgErr) {
+                            console.error('Background steps/audit insert error:', bgErr);
+                        }
+                    })();
                 }
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error('Error saving campaign:', err);
+            toast.error(err.message || 'Failed to save campaign. Please try again.');
         } finally {
             setLoading(false);
         }

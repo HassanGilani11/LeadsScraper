@@ -19,7 +19,7 @@ const LeadsList = () => {
     const industryFilter = searchParams.get('industry');
     const minScore = searchParams.get('minScore');
     const maxScore = searchParams.get('maxScore');
-    const { user, leads, setLeads, addLead, addNotification } = useStore();
+    const { user, leads, setLeads, addLead, addNotification, isLoading } = useStore();
     const [searchTerm, setSearchTerm] = useState('');
     const [campaignName, setCampaignName] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
@@ -47,8 +47,10 @@ const LeadsList = () => {
             fetchLeads();
             fetchEmailLogs();
             if (campaignId) fetchCampaignName();
+        } else if (!isLoading) {
+            setLoading(false);
         }
-    }, [user, campaignId, industryFilter, minScore, maxScore]);
+    }, [user, isLoading, campaignId, industryFilter, minScore, maxScore]);
 
     // Handle URL search parameter
     useEffect(() => {
@@ -86,7 +88,10 @@ const LeadsList = () => {
     };
 
     const fetchLeads = async () => {
-        if (!user) return;
+        if (!user) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             let query = supabase
@@ -1389,7 +1394,7 @@ const LeadsList = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={11} className="p-8 text-center text-slate-500">
+                                        <td colSpan={14} className="p-8 text-center text-slate-500">
                                             <div className="flex flex-col items-center justify-center gap-2">
                                                 {loading ? (
                                                     <Loader2 className="animate-spin text-[#1b57b1]" size={32} />

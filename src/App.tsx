@@ -77,59 +77,83 @@ const App = () => {
     }, [siteSettings]);
 
     useEffect(() => {
-        let initialFetchDone = false;
+        let mounted = true;
+        let isFetchingProfile = false;
 
-        // Initial session check — primary source of truth on page load
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (session?.user) {
-                setSession(session);
-                initialFetchDone = true;
-                fetchProfile(session.user.id, session.user.email!);
-            } else {
+        const loadUserSession = async (currentSession: any) => {
+            if (!currentSession?.user) {
+                if (mounted) {
+                    setSession(null);
+                    setUser(null);
+                    setLoading(false);
+                }
+                return;
+            }
+
+            if (mounted) {
+                setSession(currentSession);
+            }
+
+            if (!isFetchingProfile) {
+                isFetchingProfile = true;
+                try {
+                    await fetchProfile(currentSession.user.id, currentSession.user.email || '');
+                } finally {
+                    isFetchingProfile = false;
+                }
+            }
+        };
+
+        // Safety fallback timer: guarantee page loading is NEVER stuck indefinitely
+        const fallbackTimer = setTimeout(() => {
+            if (mounted) {
+                setLoading(false);
+            }
+        }, 3000);
+
+        // 1. Initial Session Check
+        supabase.auth.getSession().then(({ data: { session }, error }) => {
+            if (!mounted) return;
+            if (error || !session) {
                 setSession(null);
+                setUser(null);
+                setLoading(false);
+            } else {
+                loadUserSession(session);
+            }
+        }).catch((err) => {
+            console.error("Auth init error:", err);
+            if (mounted) {
+                setSession(null);
+                setUser(null);
                 setLoading(false);
             }
         });
 
-        // Listen for auth changes — only re-fetch on explicit sign-in events,
-        // NOT on TOKEN_REFRESHED which would cause a race condition that overwrites the correct count
+        // 2. Auth State Change Listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-            if (session?.user && (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY')) {
-                try {
-                    const { data: profile } = await supabase
-                        .from('profiles')
-                        .select('status')
-                        .eq('id', session.user.id)
-                        .single();
+            if (!mounted) return;
 
-                    if (profile && profile.status !== 'Active') {
-                        console.warn(`Auth Change Blocked: User status is ${profile.status}`);
-                        await supabase.auth.signOut();
-                        setSession(null);
-                        setUser(null);
-                        setLoading(false);
-                    } else {
-                        setSession(session);
-                        if (!initialFetchDone) {
-                            fetchProfile(session.user.id, session.user.email!);
-                        }
-                        initialFetchDone = false;
-                    }
-                } catch (err: any) {
-                    console.error("Error checking status on auth change:", err);
-                    setSession(session);
-                    setLoading(false);
-                }
+            if (event === 'SIGNED_OUT' || !session) {
+                setSession(null);
+                setUser(null);
+                setLoading(false);
+                return;
+            }
+
+            if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY' || event === 'USER_UPDATED' || !user) {
+                await loadUserSession(session);
             } else {
                 setSession(session);
-                if (!session) {
-                    setUser(null);
-                    setLoading(false);
-                }
+                setLoading(false);
             }
         });
 
-        return () => subscription.unsubscribe();
+        return () => {
+            mounted = false;
+            clearTimeout(fallbackTimer);
+            subscription.unsubscribe();
+        };
     }, []);
 
     const fetchCampaigns = async (userId: string) => {
@@ -143,7 +167,31 @@ const App = () => {
             if (error) throw error;
 
             if (campaigns && campaigns.length > 0) {
-                // Fetch counts for each campaign efficiently using count-only queries
+                // Fetch lead counts via RPC for fast single-roundtrip performance
+                try {
+                    const { data: leadCounts, error: rpcError } = await supabase
+                        .rpc('get_campaign_lead_counts', { p_user_id: userId });
+
+                    if (!rpcError && leadCounts) {
+                        const countMap = new Map<string, number>();
+                        leadCounts.forEach((row: any) => {
+                            countMap.set(row.campaign_id, Number(row.lead_count) || 0);
+                        });
+
+                        const campaignsWithCounts = campaigns.map((camp: any) => ({
+                            ...camp,
+                            leads: countMap.get(camp.id) || 0,
+                            tags: camp.target_keywords || []
+                        }));
+
+                        setCampaigns(campaignsWithCounts);
+                        return;
+                    }
+                } catch (rpcErr) {
+                    console.warn('RPC count failed, falling back to batch count queries:', rpcErr);
+                }
+
+                // Fallback if RPC is unavailable
                 const campaignsWithCounts = await Promise.all(campaigns.map(async (camp: any) => {
                     const { count, error: countError } = await supabase
                         .from('leads')
@@ -200,7 +248,7 @@ const App = () => {
                 const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
                 let needsReset = false;
-                let newMaxCredits = data.max_credits || 20;
+                let newMaxCredits = data.max_credits || (data.plan === 'Enterprise' ? 500 : data.plan === 'Pro' ? 100 : 20);
 
                 // Reset logic
                 if (data.plan === 'Starter' && diffDays >= 1) {
@@ -240,9 +288,9 @@ const App = () => {
                     webhook_enabled: data.webhook_enabled || false
                 });
                 
-                // Set loading to false as soon as we have the profile, then fetch campaigns in background
+                // Release loading screen immediately, fetch campaigns in background
                 setLoading(false);
-                await fetchCampaigns(data.id);
+                fetchCampaigns(data.id).catch(cErr => console.error('Background campaigns fetch error:', cErr));
             } else {
                 // Check if this is a "row not found" error (PGRST116)
                 if (error && error.code === 'PGRST116') {
@@ -274,9 +322,9 @@ const App = () => {
                         status: newProfile.status
                     });
                     setLoading(false);
-                    await fetchCampaigns(newProfile.id);
+                    fetchCampaigns(newProfile.id).catch(cErr => console.error('Background campaigns fetch error:', cErr));
                 } else {
-                    // It is a real error (connection error, RLS violation, etc.)
+                    // Real error (connection error, RLS violation, etc.)
                     console.error('Error fetching profile:', error);
                     setLoading(false);
                 }
