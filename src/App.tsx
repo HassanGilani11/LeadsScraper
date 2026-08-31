@@ -218,11 +218,24 @@ const App = () => {
 
     const fetchProfile = async (userId: string, email: string) => {
         try {
-            const { data, error } = await supabase
+            // Query by id first, fallback to email to guarantee profile matching
+            let { data, error } = await supabase
                 .from('profiles')
                 .select('*')
                 .eq('id', userId)
-                .single();
+                .maybeSingle();
+
+            if (!data && email) {
+                const { data: emailData } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('email', email)
+                    .maybeSingle();
+                if (emailData) {
+                    data = emailData;
+                    error = null;
+                }
+            }
 
             if (data) {
                 // If user is not Active, terminate session immediately
@@ -241,7 +254,7 @@ const App = () => {
                     return;
                 }
 
-                let currentCredits = data.credits;
+                let currentCredits = data.credits ?? 0;
                 let lastReset = new Date(data.last_reset_date || data.created_at);
                 const now = new Date();
                 const diffTime = Math.abs(now.getTime() - lastReset.getTime());
@@ -262,24 +275,26 @@ const App = () => {
                 }
 
                 if (needsReset) {
-                    await supabase
+                    supabase
                         .from('profiles')
                         .update({ 
                             credits: currentCredits, 
                             max_credits: newMaxCredits,
                             last_reset_date: now.toISOString() 
                         })
-                        .eq('id', userId);
+                        .eq('id', data.id)
+                        .then(() => {})
+                        .catch(err => console.error('Reset credit error:', err));
                 }
 
                 setUser({
                     id: data.id,
-                    email: data.email,
-                    full_name: data.full_name,
+                    email: data.email || email,
+                    full_name: data.full_name || email.split('@')[0],
                     role: data.role || 'Member',
                     plan: data.plan || 'Starter',
-                    credits: needsReset ? currentCredits : data.credits || 0,
-                    max_credits: needsReset ? newMaxCredits : data.max_credits || 20,
+                    credits: needsReset ? currentCredits : (data.credits ?? 0),
+                    max_credits: needsReset ? newMaxCredits : (data.max_credits || (data.plan === 'Enterprise' ? 500 : data.plan === 'Pro' ? 100 : 20)),
                     company: data.company || '',
                     avatar_url: data.avatar_url || '',
                     last_reset_date: needsReset ? now.toISOString() : data.last_reset_date,
@@ -292,42 +307,8 @@ const App = () => {
                 setLoading(false);
                 fetchCampaigns(data.id).catch(cErr => console.error('Background campaigns fetch error:', cErr));
             } else {
-                // Check if this is a "row not found" error (PGRST116)
-                if (error && error.code === 'PGRST116') {
-                    // If profile doesn't exist, create a default one
-                    const newProfile = {
-                        id: userId,
-                        user_id: userId,
-                        email: email,
-                        full_name: 'New User',
-                        role: 'Member',
-                        plan: 'Starter' as const,
-                        credits: 0,
-                        max_credits: 20,
-                        last_reset_date: new Date().toISOString(),
-                        status: 'Active'
-                    };
-                    await supabase.from('profiles').insert(newProfile);
-                    setUser({
-                        id: newProfile.id,
-                        email: newProfile.email,
-                        full_name: newProfile.full_name,
-                        role: newProfile.role,
-                        plan: newProfile.plan,
-                        credits: newProfile.credits,
-                        max_credits: newProfile.max_credits,
-                        company: '',
-                        avatar_url: '',
-                        last_reset_date: newProfile.last_reset_date,
-                        status: newProfile.status
-                    });
-                    setLoading(false);
-                    fetchCampaigns(newProfile.id).catch(cErr => console.error('Background campaigns fetch error:', cErr));
-                } else {
-                    // Real error (connection error, RLS violation, etc.)
-                    console.error('Error fetching profile:', error);
-                    setLoading(false);
-                }
+                console.warn('Profile not found for user:', userId, email);
+                setLoading(false);
             }
         } catch (err) {
             console.error('Error fetching profile:', err);
