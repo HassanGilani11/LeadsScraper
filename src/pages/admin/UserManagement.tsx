@@ -356,9 +356,15 @@ const UserManagement = () => {
     const handlePlanChange = async (user: any, newPlan: string) => {
         try {
             setLoading(true);
+            const newMaxCredits = newPlan === 'Starter' ? 20 : (newPlan === 'Pro' ? 100 : 500);
+
             const { error } = await supabase
                 .from('profiles')
-                .update({ plan: newPlan })
+                .update({ 
+                    plan: newPlan,
+                    max_credits: newMaxCredits,
+                    credits: 0
+                })
                 .eq('id', user.id);
 
             if (error) throw error;
@@ -367,13 +373,13 @@ const UserManagement = () => {
             await logAuditAction({
                 actionType: 'PLAN_CHANGED',
                 targetEntity: user.email,
-                beforeValue: { plan: user.plan },
-                afterValue: { plan: newPlan },
-                note: `Admin changed user plan from ${user.plan} to ${newPlan}.`
+                beforeValue: { plan: user.plan, max_credits: user.max_credits, credits: user.credits },
+                afterValue: { plan: newPlan, max_credits: newMaxCredits, credits: 0 },
+                note: `Admin changed user plan from ${user.plan} to ${newPlan} and reset credits.`
             });
 
-            setUsers(users.map(u => u.id === user.id ? { ...u, plan: newPlan } : u));
-            setSelectedUser({ ...selectedUser, plan: newPlan });
+            setUsers(users.map(u => u.id === user.id ? { ...u, plan: newPlan, max_credits: newMaxCredits, credits: 0 } : u));
+            setSelectedUser({ ...selectedUser, plan: newPlan, max_credits: newMaxCredits, credits: 0 });
             addNotification({ title: 'Success', message: `Plan updated to ${newPlan}`, type: 'success' });
         } catch (err: any) {
             addNotification({ title: 'Error', message: 'Failed to update plan', type: 'error' });
@@ -1006,8 +1012,10 @@ const UserManagement = () => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 pt-4">
-                                <button type="button" onClick={() => setIsInviteModalOpen(false)} className="px-6 py-3 border border-slate-200 rounded-xl text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all">Cancel</button>
-                                <button type="submit" className="px-6 py-3 bg-[#1b57b1] rounded-xl text-white text-sm font-bold hover:bg-[#154690] shadow-xl shadow-[#1b57b1]/20 transition-all">Create User</button>
+                                <button type="button" disabled={loading} onClick={() => setIsInviteModalOpen(false)} className="px-6 py-3 border border-slate-200 rounded-xl text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all disabled:opacity-50">Cancel</button>
+                                <button type="submit" disabled={loading} className="px-6 py-3 bg-[#1b57b1] rounded-xl text-white text-sm font-bold hover:bg-[#154690] shadow-xl shadow-[#1b57b1]/20 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                                    {loading ? 'Creating...' : 'Create User'}
+                                </button>
                             </div>
                         </form>
                     </div>

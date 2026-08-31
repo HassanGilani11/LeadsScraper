@@ -73,44 +73,147 @@ const UsageAnalytics = () => {
         setLoading(true);
         try {
             const now = new Date();
-            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+            const rangeDays = dateRange === '7d' ? 7 : (dateRange === '90d' ? 90 : 30);
+            const fetchDays = Math.max(60, rangeDays);
             
-            // 1. Fetch Stats (DAU/MAU estimated from leads created)
-            const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
-            
-            const { data: dauResult } = await supabase
-                .from('leads')
-                .select('user_id', { count: 'exact' })
-                .gte('created_at', today);
-            
-            const { data: mauResult } = await supabase
-                .from('leads')
-                .select('user_id', { count: 'exact' })
-                .gte('created_at', thirtyDaysAgo);
-                
-            const uniqueDau = new Set(dauResult?.map(l => l.user_id)).size;
-            const uniqueMau = new Set(mauResult?.map(l => l.user_id)).size;
-            const stickiness = uniqueMau > 0 ? ((uniqueDau / uniqueMau) * 100).toFixed(1) : 0;
+            const startDate = new Date();
+            startDate.setDate(now.getDate() - fetchDays);
+            startDate.setHours(0, 0, 0, 0);
+
+            // Fetch activity from leads, campaigns, and emails in parallel
+            const [
+                { data: leadsActivity },
+                { data: campaignsActivity },
+                { data: emailsActivity },
+                { data: profileStats },
+                { data: usersWithLeads }
+            ] = await Promise.all([
+                supabase
+                    .from('leads')
+                    .select('user_id, created_at')
+                    .gte('created_at', startDate.toISOString())
+                    .lte('created_at', now.toISOString()),
+                supabase
+                    .from('campaigns')
+                    .select('user_id, created_at')
+                    .gte('created_at', startDate.toISOString())
+                    .lte('created_at', now.toISOString()),
+                supabase
+                    .from('email_logs')
+                    .select('user_id, sent_at')
+                    .gte('sent_at', startDate.toISOString())
+                    .lte('sent_at', now.toISOString()),
+                supabase
+                    .from('profiles')
+                    .select('plan'),
+                supabase
+                    .from('profiles')
+                    .select('id, full_name, email, plan, credits, max_credits, leads(count)')
+            ]);
+
+            // Map activities to days
+            const dateMap: { [key: string]: Set<string> } = {};
+            const dateArray: string[] = [];
+
+            // Initialize all dates in the fetch range
+            const current = new Date(startDate);
+            while (current <= now) {
+                const key = current.toISOString().split('T')[0];
+                if (!dateMap[key]) {
+                    dateMap[key] = new Set<string>();
+                    dateArray.push(key);
+                }
+                current.setDate(current.getDate() + 1);
+            }
+
+            const getDayKey = (isoString: string) => isoString.split('T')[0];
+
+            leadsActivity?.forEach(item => {
+                const key = getDayKey(item.created_at);
+                if (dateMap[key]) dateMap[key].add(item.user_id);
+            });
+
+            campaignsActivity?.forEach(item => {
+                const key = getDayKey(item.created_at);
+                if (dateMap[key]) dateMap[key].add(item.user_id);
+            });
+
+            emailsActivity?.forEach(item => {
+                const key = getDayKey(item.sent_at);
+                if (dateMap[key]) dateMap[key].add(item.user_id);
+            });
+
+            // 1. Calculate Stats
+            const todayKey = now.toISOString().split('T')[0];
+            const currentDau = dateMap[todayKey]?.size || 0;
+
+            const yesterday = new Date(now);
+            yesterday.setDate(now.getDate() - 1);
+            const yesterdayKey = yesterday.toISOString().split('T')[0];
+            const yesterdayDau = dateMap[yesterdayKey]?.size || 0;
+
+            let dauTrend = '0%';
+            if (yesterdayDau > 0) {
+                const diff = ((currentDau - yesterdayDau) / yesterdayDau) * 100;
+                dauTrend = (diff >= 0 ? '+' : '') + Math.round(diff) + '%';
+            } else if (currentDau > 0) {
+                dauTrend = '+' + (currentDau * 100) + '%';
+            }
+
+            // MAU helper
+            const getUniqueUsersInRange = (daysFrom: number, daysTo: number) => {
+                const userSet = new Set<string>();
+                for (let i = daysFrom; i <= daysTo; i++) {
+                    const d = new Date(now);
+                    d.setDate(now.getDate() - i);
+                    const key = d.toISOString().split('T')[0];
+                    if (dateMap[key]) {
+                        dateMap[key].forEach(uid => userSet.add(uid));
+                    }
+                }
+                return userSet.size;
+            };
+
+            const currentMau = getUniqueUsersInRange(0, 29);
+            const previousMau = getUniqueUsersInRange(30, 59);
+
+            let mauTrend = '0%';
+            if (previousMau > 0) {
+                const diff = ((currentMau - previousMau) / previousMau) * 100;
+                mauTrend = (diff >= 0 ? '+' : '') + Math.round(diff) + '%';
+            } else if (currentMau > 0) {
+                mauTrend = '+' + (currentMau * 100) + '%';
+            }
+
+            const currentStickiness = currentMau > 0 ? (currentDau / currentMau) * 100 : 0;
+            const yesterdayMau = getUniqueUsersInRange(1, 30);
+            const yesterdayStickiness = yesterdayMau > 0 ? (yesterdayDau / yesterdayMau) * 100 : 0;
+
+            let stickinessTrend = '0%';
+            if (yesterdayStickiness > 0) {
+                const diff = currentStickiness - yesterdayStickiness;
+                stickinessTrend = (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';
+            } else if (currentStickiness > 0) {
+                stickinessTrend = '+' + currentStickiness.toFixed(1) + '%';
+            }
 
             setStats({
-                dau: uniqueDau,
-                mau: uniqueMau,
-                stickiness: Number(stickiness),
-                dauTrend: '+12%', // Mocked trend
-                mauTrend: '+5%',
-                stickinessTrend: '+2%'
+                dau: currentDau,
+                mau: currentMau,
+                stickiness: Number(currentStickiness.toFixed(1)),
+                dauTrend,
+                mauTrend,
+                stickinessTrend
             });
 
             // 2. Fetch Plan Distribution
-            const { data: profileStats } = await supabase
-                .from('profiles')
-                .select('plan');
-            
             const plans = { Starter: 0, Pro: 0, Enterprise: 0 };
             profileStats?.forEach(p => {
                 const plan = (p.plan || 'Starter') as keyof typeof plans;
                 if (plans[plan] !== undefined) plans[plan]++;
             });
+
+            const totalUsers = Object.values(plans).reduce((a, b) => a + b, 0);
 
             setPlanData({
                 labels: Object.keys(plans),
@@ -118,32 +221,46 @@ const UsageAnalytics = () => {
                     data: Object.values(plans),
                     backgroundColor: ['#1b57b1', '#0ea5e9', '#06b6d4'],
                     borderWidth: 0,
-                }]
+                }],
+                totalUsers
             });
 
             // 3. Fetch Feature Usage
-            const { count: leadsCount } = await supabase.from('leads').select('*', { count: 'exact', head: true });
-            const { count: campaignsCount } = await supabase.from('campaigns').select('*', { count: 'exact', head: true });
-            const { count: emailsCount } = await supabase.from('email_logs').select('*', { count: 'exact', head: true });
+            const rangeStartDate = new Date();
+            rangeStartDate.setDate(now.getDate() - rangeDays);
+            rangeStartDate.setHours(0, 0, 0, 0);
+
+            const leadsCount = leadsActivity?.filter(item => new Date(item.created_at) >= rangeStartDate).length || 0;
+            const campaignsCount = campaignsActivity?.filter(item => new Date(item.created_at) >= rangeStartDate).length || 0;
+            const emailsCount = emailsActivity?.filter(item => new Date(item.sent_at) >= rangeStartDate).length || 0;
 
             setFeatureData({
                 labels: ['Scraper', 'Campaigns', 'Emails'],
                 datasets: [{
                     label: 'Total Actions',
-                    data: [leadsCount || 0, campaignsCount || 0, emailsCount || 0],
+                    data: [leadsCount, campaignsCount, emailsCount],
                     backgroundColor: 'rgba(27, 87, 177, 0.8)',
                     borderRadius: 8,
                 }]
             });
 
-            // 4. DAU Chart (Mocking past 7 days based on current data for visualization)
-            // In a real app, this would be a complex group-by query or a dedicated analytics table.
+            // 4. Line Chart: DAU over selected period
+            const chartLabels: string[] = [];
+            const chartDataPoints: number[] = [];
+            for (let i = rangeDays - 1; i >= 0; i--) {
+                const d = new Date(now);
+                d.setDate(now.getDate() - i);
+                const key = d.toISOString().split('T')[0];
+                chartLabels.push(d.toLocaleDateString('default', { month: 'short', day: 'numeric' }));
+                chartDataPoints.push(dateMap[key]?.size || 0);
+            }
+
             setChartData({
-                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                labels: chartLabels,
                 datasets: [{
                     fill: true,
                     label: 'Active Users',
-                    data: [uniqueDau + 5, uniqueDau + 2, uniqueDau + 8, uniqueDau + 4, uniqueDau + 10, uniqueDau + 15, uniqueDau],
+                    data: chartDataPoints,
                     borderColor: '#1b57b1',
                     backgroundColor: 'rgba(27, 87, 177, 0.1)',
                     tension: 0.4,
@@ -151,15 +268,13 @@ const UsageAnalytics = () => {
             });
 
             // 5. Top Users
-            const { data: usersWithLeads } = await supabase
-                .from('profiles')
-                .select('id, full_name, email, plan, leads(count)');
-            
             const processedUsers = usersWithLeads?.map(u => ({
                 id: u.id,
                 name: u.full_name || 'Unnamed',
                 email: u.email,
                 plan: u.plan || 'Starter',
+                credits: u.credits || 0,
+                maxCredits: u.max_credits || 20,
                 runs: u.leads?.[0]?.count || 0
             })).sort((a, b) => b.runs - a.runs).slice(0, 10);
 
@@ -285,8 +400,8 @@ const UsageAnalytics = () => {
                             ) : planData && <Doughnut data={planData} options={doughnutOptions} />}
                             {!loading && (
                                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-[-20px]">
-                                    <span className="text-2xl font-bold text-slate-900">100%</span>
-                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center px-10">Market Share</span>
+                                    <span className="text-2xl font-bold text-slate-900">{planData?.totalUsers || 0}</span>
+                                    <span className="text-[9px] text-slate-400 font-bold uppercase tracking-widest text-center px-10">Total Users</span>
                                 </div>
                             )}
                         </div>
@@ -324,7 +439,7 @@ const UsageAnalytics = () => {
                                         <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">User Profile</th>
                                         <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-center">Plan</th>
                                         <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Activity</th>
-                                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Stickiness</th>
+                                        <th className="pb-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest text-right">Credit Usage</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
@@ -360,7 +475,7 @@ const UsageAnalytics = () => {
                                                     <div className="w-16 h-1.5 bg-slate-100 rounded-full overflow-hidden shadow-inner">
                                                         <div 
                                                             className="h-full bg-[#1b57b1] transition-all duration-1000 ease-out" 
-                                                            style={{ width: `${Math.min((user.runs / 100) * 100, 100)}%` }}
+                                                            style={{ width: `${Math.min((user.credits / user.maxCredits) * 100, 100)}%` }}
                                                         ></div>
                                                     </div>
                                                 </div>

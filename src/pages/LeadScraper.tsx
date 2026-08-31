@@ -59,21 +59,21 @@ const LeadScraper = () => {
             return;
         }
 
+        if (!user) {
+            setError('You must be logged in to scrape leads.');
+            return;
+        }
+
+        // Credit Check
+        if (user.credits >= user.max_credits) {
+            setIsUpgradeModalOpen(true);
+            return;
+        }
+
         try {
             setError(null);
             setSuccess(null);
             toast.loading(`Starting extraction for ${url}...`, { id: 'scrape-toast' });
-
-            if (!user) {
-                setError('You must be logged in to scrape leads.');
-                return;
-            }
-
-            // Credit Check
-            if (user.credits >= user.max_credits) {
-                setIsUpgradeModalOpen(true);
-                return;
-            }
 
             const payload = {
                 url,
@@ -127,6 +127,27 @@ const LeadScraper = () => {
                         ...user,
                         credits: newCredits
                     });
+
+                    // Trigger Webhook if configured
+                    if (user.webhook_enabled && user.webhook_url) {
+                        try {
+                            fetch(user.webhook_url, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    event: 'lead.scraped',
+                                    timestamp: new Date().toISOString(),
+                                    user_email: user.email,
+                                    campaign_id: selectedCampaignId || null,
+                                    leads: data.leads
+                                })
+                            }).catch(err => console.error('Webhook execution failed:', err));
+                        } catch (webhookErr) {
+                            console.error('Failed to trigger webhook:', webhookErr);
+                        }
+                    }
 
                     if (selectedCampaignId) {
                         const campaign = campaigns.find(c => c.id === selectedCampaignId);

@@ -70,7 +70,9 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
             <div className="p-6 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg bg-[#1b57b1] flex items-center justify-center text-white overflow-hidden shrink-0">
-                        {siteSettings?.favicon_url ? (
+                        {user?.avatar_url ? (
+                            <img src={user.avatar_url} alt="Logo" className="w-full h-full object-cover" />
+                        ) : siteSettings?.favicon_url ? (
                             <img src={siteSettings.favicon_url} alt="Logo" className="w-full h-full object-cover" />
                         ) : (
                             <Rocket size={24} />
@@ -95,7 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ open, onClose }) => {
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 px-4 space-y-1">
+            <nav className="flex-1 px-4 space-y-1 overflow-y-auto pb-4">
                 {navItems.map((item) => {
                     const active = pathname === item.href;
                     return (

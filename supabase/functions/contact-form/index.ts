@@ -29,7 +29,124 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { fullName, email, subject, message }: ContactFormPayload = await req.json();
+    const body = await req.json();
+    const { action, fullName, email, subject, message } = body;
+
+    if (action === "welcome") {
+      if (!fullName || !email) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const welcomeSubject = "Welcome to Leads Scraper! 🚀";
+      const originUrl = req.headers.get("origin") || "http://localhost:5173";
+      
+      const emailHtml = `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+          <h2 style="color: #1b57b1; margin-top: 0;">Welcome to Leads Scraper!</h2>
+          <p style="color: #334155; line-height: 1.6;">Hi ${fullName},</p>
+          <p style="color: #334155; line-height: 1.6;">Your account has been successfully set up and is now active. You can now log in and start using the platform to extract leads, build outreach campaigns, and scale your growth.</p>
+          
+          <div style="margin: 30px 0; text-align: center;">
+            <a href="${originUrl}/auth" style="background-color: #1b57b1; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;">Log In to Your Dashboard</a>
+          </div>
+          
+          <p style="color: #334155; line-height: 1.6;">If you have any questions or need assistance, feel free to reply to this email or contact our support team.</p>
+          
+          <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+            <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size:14px; color:#222222; width: 100%;">
+              <tbody>
+                <tr>
+                  <td style="vertical-align:middle;padding-right:12px; width: 210px;">
+                    <img src="http://syntexdev.com/wp-content/uploads/2023/12/Gemini_Generated_Image_t2muftt2muftt2mu-removebg-preview.png" alt="SyntexDev" width="200" style="display:block;border:0;outline:none;text-decoration:none;">
+                  </td>
+                  <td style="vertical-align:middle;">
+                    <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">
+                      <tbody>
+                        <tr>
+                          <td style="font-weight:700; font-size:16px; color:#111111; padding-bottom:3px;">Syed Hassan Gillani</td>
+                        </tr>
+                        <tr>
+                          <td style="color:#666666; padding-bottom:8px;">Co-Founder | SyntexDev</td>
+                        </tr>
+                        <tr>
+                          <td style="padding-bottom:6px;">
+                            <span style="color:#111111; font-weight:600;">Email:</span>
+                            <a href="mailto:sales@syntexdev.com" style="color:#1a73e8; text-decoration:none;">sales@syntexdev.com</a>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding-bottom:6px;">
+                            <span style="color:#111111; font-weight:600;">Web:</span>
+                            <a href="https://syntexdev.com" style="color:#1a73e8; text-decoration:none;">syntexdev.com</a>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+            <div style="margin-top: 10px; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+              This email was sent from the SyntexDev contact form engine.
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+        console.log(`Sending welcome email to ${email} via SMTP`);
+        const transporter = nodemailer.createTransport({
+          host: SMTP_HOST,
+          port: SMTP_PORT,
+          secure: SMTP_PORT === 465,
+          auth: {
+            user: SMTP_USER,
+            pass: SMTP_PASS,
+          },
+        });
+
+        await transporter.sendMail({
+          from: {
+            name: SMTP_FROM_NAME,
+            address: SMTP_USER,
+          },
+          to: email,
+          subject: welcomeSubject,
+          html: emailHtml,
+        });
+      } else if (RESEND_API_KEY) {
+        console.log(`Sending welcome email to ${email} via Resend`);
+        const resendFrom = SMTP_USER ? `${SMTP_FROM_NAME} <${SMTP_USER}>` : `SyntexDev Support <onboarding@resend.dev>`;
+        const resendResponse = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${RESEND_API_KEY}`,
+          },
+          body: JSON.stringify({
+            from: resendFrom,
+            to: email,
+            subject: welcomeSubject,
+            html: emailHtml,
+          }),
+        });
+
+        if (!resendResponse.ok) {
+          const errText = await resendResponse.text();
+          throw new Error(`Resend error: ${errText}`);
+        }
+      } else {
+        throw new Error("No mail provider configured for welcome email.");
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, message: "Welcome email sent successfully" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     if (!fullName || !email || !subject || !message) {
       return new Response(
@@ -58,98 +175,184 @@ serve(async (req: Request) => {
       // We continue to send the email even if DB insert fails, but log it.
     }
 
-    if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
+    const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY") ?? "";
+    const CONTACT_EMAIL = Deno.env.get("CONTACT_EMAIL") ?? "";
+
+    if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+      // 2. Send via SMTP
+      console.log("Attempting to send email via SMTP");
+
+      const transporter = nodemailer.createTransport({
+        host: SMTP_HOST,
+        port: SMTP_PORT,
+        secure: SMTP_PORT === 465,
+        auth: {
+          user: SMTP_USER,
+          pass: SMTP_PASS,
+        },
+      });
+
+      const mailOptions = {
+        from: {
+          name: SMTP_FROM_NAME,
+          address: SMTP_USER,
+        },
+        to: CONTACT_EMAIL || SMTP_USER,
+        replyTo: email,
+        subject: `New Contact Form Submission: ${subject}`,
+        text: `
+          New Message from Leads Scraper Contact Form:
+          
+          Name: ${fullName}
+          Email: ${email}
+          Subject: ${subject}
+          
+          Message:
+          ${message}
+        `,
+        html: `
+          <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+            <h2 style="color: #1b57b1; margin-top: 0;">New Contact Submission</h2>
+            <p style="margin-bottom: 20px; color: #64748b;">You have received a new message from the Leads Scraper contact form.</p>
+            
+            <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+              <p style="margin: 0 0 8px;"><strong>From:</strong> ${fullName} (${email})</p>
+              <p style="margin: 0 0 8px;"><strong>Subject:</strong> ${subject}</p>
+            </div>
+            
+            <div style="white-space: pre-wrap; line-height: 1.6; color: #334155; padding: 16px; border-left: 4px solid #1b57b1;">
+              ${message}
+            </div>
+            
+            <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+              <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size:14px; color:#222222; width: 100%;">
+                <tbody>
+                  <tr>
+                    <td style="vertical-align:middle;padding-right:12px; width: 210px;">
+                      <img src="http://syntexdev.com/wp-content/uploads/2023/12/Gemini_Generated_Image_t2muftt2muftt2mu-removebg-preview.png" alt="SyntexDev" width="200" style="display:block;border:0;outline:none;text-decoration:none;">
+                    </td>
+                    <td style="vertical-align:middle;">
+                      <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">
+                        <tbody>
+                          <tr>
+                            <td style="font-weight:700; font-size:16px; color:#111111; padding-bottom:3px;">Syed Hassan Gillani</td>
+                          </tr>
+                          <tr>
+                            <td style="color:#666666; padding-bottom:8px;">Co-Founder | SyntexDev</td>
+                          </tr>
+                          <tr>
+                            <td style="padding-bottom:6px;">
+                              <span style="color:#111111; font-weight:600;">Email:</span>
+                              <a href="mailto:sales@syntexdev.com" style="color:#1a73e8; text-decoration:none;">sales@syntexdev.com</a>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding-bottom:6px;">
+                              <span style="color:#111111; font-weight:600;">Web:</span>
+                              <a href="https://syntexdev.com" style="color:#1a73e8; text-decoration:none;">syntexdev.com</a>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+              <div style="margin-top: 10px; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                This email was sent from the SyntexDev contact form engine.
+              </div>
+            </div>
+          </div>
+        `,
+      };
+
+      await transporter.sendMail(mailOptions);
+    } else if (RESEND_API_KEY) {
+      // 3. Send via Resend API
+      const resendFrom = SMTP_USER ? `${SMTP_FROM_NAME} <${SMTP_USER}>` : `SyntexDev Support <onboarding@resend.dev>`;
+      const resendTo = CONTACT_EMAIL || SMTP_USER || "sales@syntexdev.com";
+
+      console.log(`Attempting to send email via Resend to ${resendTo} from ${resendFrom}`);
+
+      const resendResponse = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${RESEND_API_KEY}`,
+        },
+        body: JSON.stringify({
+          from: resendFrom,
+          to: resendTo,
+          reply_to: email,
+          subject: `New Contact Form Submission: ${subject}`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
+              <h2 style="color: #1b57b1; margin-top: 0;">New Contact Submission</h2>
+              <p style="margin-bottom: 20px; color: #64748b;">You have received a new message from the Leads Scraper contact form.</p>
+              
+              <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0 0 8px;"><strong>From:</strong> ${fullName} (${email})</p>
+                <p style="margin: 0 0 8px;"><strong>Subject:</strong> ${subject}</p>
+              </div>
+              
+              <div style="white-space: pre-wrap; line-height: 1.6; color: #334155; padding: 16px; border-left: 4px solid #1b57b1;">
+                ${message}
+              </div>
+              
+              <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+                <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size:14px; color:#222222; width: 100%;">
+                  <tbody>
+                    <tr>
+                      <td style="vertical-align:middle;padding-right:12px; width: 210px;">
+                        <img src="http://syntexdev.com/wp-content/uploads/2023/12/Gemini_Generated_Image_t2muftt2muftt2mu-removebg-preview.png" alt="SyntexDev" width="200" style="display:block;border:0;outline:none;text-decoration:none;">
+                      </td>
+                      <td style="vertical-align:middle;">
+                        <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">
+                          <tbody>
+                            <tr>
+                              <td style="font-weight:700; font-size:16px; color:#111111; padding-bottom:3px;">Syed Hassan Gillani</td>
+                            </tr>
+                            <tr>
+                              <td style="color:#666666; padding-bottom:8px;">Co-Founder | SyntexDev</td>
+                            </tr>
+                            <tr>
+                              <td style="padding-bottom:6px;">
+                                <span style="color:#111111; font-weight:600;">Email:</span>
+                                <a href="mailto:sales@syntexdev.com" style="color:#1a73e8; text-decoration:none;">sales@syntexdev.com</a>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td style="padding-bottom:6px;">
+                                <span style="color:#111111; font-weight:600;">Web:</span>
+                                <a href="https://syntexdev.com" style="color:#1a73e8; text-decoration:none;">syntexdev.com</a>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+                <div style="margin-top: 10px; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px;">
+                  This email was sent from the SyntexDev contact form engine.
+                </div>
+              </div>
+            </div>
+          `,
+        }),
+      });
+
+      if (!resendResponse.ok) {
+        const resendErrText = await resendResponse.text();
+        console.error(`Resend API response error: ${resendErrText}`);
+        throw new Error(`Resend API Error: ${resendErrText}`);
+      }
+    } else {
       return new Response(
-        JSON.stringify({ error: "SMTP credentials not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS as Supabase secrets." }),
+        JSON.stringify({ error: "Email provider not configured. Please set SMTP credentials (SMTP_HOST, SMTP_USER, SMTP_PASS) or RESEND_API_KEY as Supabase secrets." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const transporter = nodemailer.createTransport({
-      host: SMTP_HOST,
-      port: SMTP_PORT,
-      secure: SMTP_PORT === 465,
-      auth: {
-        user: SMTP_USER,
-        pass: SMTP_PASS,
-      },
-    });
-
-    const mailOptions = {
-      from: {
-        name: SMTP_FROM_NAME,
-        address: SMTP_USER,
-      },
-      to: SMTP_USER, // Send to the admin (same as SMTP_USER typically)
-      replyTo: email,
-      subject: `New Contact Form Submission: ${subject}`,
-      text: `
-        New Message from Leads Scraper Contact Form:
-        
-        Name: ${fullName}
-        Email: ${email}
-        Subject: ${subject}
-        
-        Message:
-        ${message}
-      `,
-      html: `
-        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-          <h2 style="color: #1b57b1; margin-top: 0;">New Contact Submission</h2>
-          <p style="margin-bottom: 20px; color: #64748b;">You have received a new message from the Leads Scraper contact form.</p>
-          
-          <div style="background-color: #f8fafc; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
-            <p style="margin: 0 0 8px;"><strong>From:</strong> ${fullName} (${email})</p>
-            <p style="margin: 0 0 8px;"><strong>Subject:</strong> ${subject}</p>
-          </div>
-          
-          <div style="white-space: pre-wrap; line-height: 1.6; color: #334155; padding: 16px; border-left: 4px solid #1b57b1;">
-            ${message}
-          </div>
-          
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
-          <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif; font-size:14px; color:#222222; width: 100%;">
-            <tbody>
-              <tr>
-                <td style="vertical-align:middle;padding-right:12px; width: 210px;">
-                  <img src="http://syntexdev.com/wp-content/uploads/2023/12/Gemini_Generated_Image_t2muftt2muftt2mu-removebg-preview.png" alt="SyntexDev" width="200" style="display:block;border:0;outline:none;text-decoration:none;">
-                </td>
-                <td style="vertical-align:middle;">
-                  <table cellpadding="0" cellspacing="0" style="font-family: Arial, 'Helvetica Neue', Helvetica, sans-serif;">
-                    <tbody>
-                      <tr>
-                        <td style="font-weight:700; font-size:16px; color:#111111; padding-bottom:3px;">Syed Hassan Gillani</td>
-                      </tr>
-                      <tr>
-                        <td style="color:#666666; padding-bottom:8px;">Co-Founder | SyntexDev</td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom:6px;">
-                          <span style="color:#111111; font-weight:600;">Email:</span>
-                          <a href="mailto:sales@syntexdev.com" style="color:#1a73e8; text-decoration:none;">sales@syntexdev.com</a>
-                        </td>
-                      </tr>
-                      <tr>
-                        <td style="padding-bottom:6px;">
-                          <span style="color:#111111; font-weight:600;">Web:</span>
-                          <a href="https://syntexdev.com" style="color:#1a73e8; text-decoration:none;">syntexdev.com</a>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          <div style="margin-top: 10px; font-size: 11px; color: #94a3b8; border-top: 1px solid #f1f5f9; padding-top: 10px;">
-            This email was sent from the SyntexDev contact form engine.
-          </div>
-        </div>
-        </div>
-      `,
-    };
-
-    await transporter.sendMail(mailOptions);
 
     return new Response(
       JSON.stringify({ success: true, message: "Email sent successfully" }),

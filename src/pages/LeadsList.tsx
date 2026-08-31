@@ -11,6 +11,7 @@ import { Target } from 'lucide-react';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import CustomSelect from '@/components/ui/CustomSelect';
+import { generateProfessionalAuditPDF } from '@/utils/pdfReportGenerator';
 
 const LeadsList = () => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -37,6 +38,7 @@ const LeadsList = () => {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [companyFilter, setCompanyFilter] = useState('all');
     const [sourceFilter, setSourceFilter] = useState('all');
+    const [sequenceFilter, setSequenceFilter] = useState('all');
     const [editSource, setEditSource] = useState('scraper');
     const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -89,8 +91,27 @@ const LeadsList = () => {
         try {
             let query = supabase
                 .from('leads')
-                .select('*')
-                .eq('user_id', user.id);
+                .select(`
+                    *,
+                    lead_audits (
+                        score,
+                        lighthouse_performance,
+                        lighthouse_accessibility,
+                        lighthouse_best_practices,
+                        lighthouse_seo,
+                        ssl_enabled,
+                        mobile_friendly,
+                        audit_data,
+                        created_at
+                    ),
+                    lead_sequences (
+                        status,
+                        current_step_number,
+                        next_send_at
+                    )
+                `);
+
+            query = query.eq('user_id', user.id);
 
             if (campaignId) {
                 query = query.eq('campaign_id', campaignId);
@@ -109,20 +130,6 @@ const LeadsList = () => {
             }
 
             const { data, error } = await query
-                .select(`
-                    *,
-                    lead_audits (
-                        score,
-                        lighthouse_performance,
-                        lighthouse_accessibility,
-                        lighthouse_best_practices,
-                        lighthouse_seo,
-                        ssl_enabled,
-                        mobile_friendly,
-                        audit_data,
-                        created_at
-                    )
-                `)
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -133,6 +140,8 @@ const LeadsList = () => {
                 const latestAudit = audits.sort((a, b) => 
                     new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
                 )[0];
+
+                const sequence = (lead.lead_sequences as any[])?.[0] || null;
 
                 return {
                     ...lead,
@@ -145,7 +154,10 @@ const LeadsList = () => {
                     load_time_ms: latestAudit?.load_time_ms !== undefined ? latestAudit.load_time_ms : null,
                     ssl_enabled: latestAudit?.ssl_enabled !== undefined ? latestAudit.ssl_enabled : null,
                     mobile_friendly: latestAudit?.mobile_friendly !== undefined ? latestAudit.mobile_friendly : null,
-                    audit_data: latestAudit?.audit_data || null
+                    audit_data: latestAudit?.audit_data || null,
+                    sequence_status: sequence?.status || null,
+                    sequence_step: sequence?.current_step_number || 0,
+                    next_followup: sequence?.next_send_at || null
                 };
             }) || [];
             
@@ -436,86 +448,7 @@ const LeadsList = () => {
     };
 
     const handleGeneratePDF = (lead: Lead) => {
-        const doc = new jsPDF();
-        const pageWidth = doc.internal.pageSize.getWidth();
-        
-        // Header
-        doc.setFillColor(27, 87, 177); // #1b57b1
-        doc.rect(0, 0, pageWidth, 40, 'F');
-        
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Website Health Audit', 15, 25);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Generated on ${new Date().toLocaleDateString()}`, pageWidth - 55, 25);
-
-        // Lead Info
-        doc.setTextColor(33, 33, 33);
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`${lead.company || lead.first_name + ' ' + lead.last_name} - Assessment`, 15, 55);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Contact: ${lead.first_name} ${lead.last_name}`, 15, 65);
-        doc.text(`Email: ${lead.email}`, 15, 70);
-        doc.text(`Website: ${lead.company_website || lead.source_url || 'N/A'}`, 15, 75);
-
-        // Metric mapping
-        const scoresData = [
-            ['Overall Health Score', `${lead.audit_score || 0}/100`],
-            ['Core Performance', `${lead.lighthouse_performance || 0}%`],
-            ['Search Optimization (SEO)', `${lead.lighthouse_seo || 0}%`],
-            ['Accessibility Compliance', `${lead.lighthouse_accessibility || 0}%`],
-            ['Web Best Practices', `${lead.lighthouse_best_practices || 0}%`],
-            ['Security (SSL/HTTPS)', lead.ssl_enabled ? 'Active' : 'Missing'],
-            ['Mobile Optimization', lead.mobile_friendly ? 'Optimized' : 'Not Responsive']
-        ];
-
-        autoTable(doc, {
-            startY: 85,
-            head: [['Audit Metric', 'Optimization Level']],
-            body: scoresData,
-            theme: 'grid',
-            headStyles: { fillColor: [27, 87, 177], fontStyle: 'bold' },
-            styles: { fontSize: 9, cellPadding: 4 }
-        });
-
-        // Recommendations
-        let y = (doc as any).lastAutoTable?.finalY || 150;
-        y += 15;
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Strategic Recommendations', 15, y);
-        
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        y += 10;
-        
-        const recommendations = [];
-        if ((lead.lighthouse_performance || 0) < 80) recommendations.push("• Optimize core web vitals and image compression for faster load times.");
-        if (!lead.ssl_enabled) recommendations.push("• CRITICAL: Secure your domain with an SSL certificate to protect user data.");
-        if (!lead.mobile_friendly) recommendations.push("• Implement responsive design to capture mobile traffic effectively.");
-        if ((lead.lighthouse_seo || 0) < 80) recommendations.push("• Enhance on-page SEO structure (H1 tags, Meta Descriptions) for better rankings.");
-        if (recommendations.length === 0) recommendations.push("• Site is currently high-performing. Continue regular monitoring for regressions.");
-
-        recommendations.forEach(rec => {
-            if (y > 270) { doc.addPage(); y = 20; }
-            doc.text(rec, 15, y);
-            y += 8;
-        });
-
-        // Footer
-        const pageHeight = doc.internal.pageSize.getHeight();
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text('This report was generated by SyntexDev. Data is based on real-time website analysis.', 15, pageHeight - 10);
-
-        const fileName = (lead.company || lead.first_name || 'Lead').replace(/\s+/g, '_');
-        doc.save(`Audit_Report_${fileName}.pdf`);
+        generateProfessionalAuditPDF(lead);
         toast.success('Professional PDF Report ready!');
     };
             
@@ -577,6 +510,49 @@ const LeadsList = () => {
         } catch (err) {
             console.error('Error duplicating lead:', err);
             toast.error('Failed to duplicate lead');
+        }
+    };
+
+    const toggleSequenceStatus = async (leadId: string, currentStatus: string | null) => {
+        if (!user) return;
+        
+        const newStatus = currentStatus === 'active' ? 'paused' : 'active';
+        const toastId = toast.loading(`${newStatus === 'active' ? 'Resuming' : 'Pausing'} sequence...`);
+        
+        try {
+            const { error } = await supabase
+                .from('lead_sequences')
+                .update({ status: newStatus })
+                .eq('lead_id', leadId);
+                
+            if (error) throw error;
+            
+            setLeads(leads.map(l => l.id === leadId ? { ...l, sequence_status: newStatus } : l));
+            toast.success(`Sequence ${newStatus}`, { id: toastId });
+        } catch (err) {
+            console.error('Error toggling sequence status:', err);
+            toast.error('Failed to update sequence', { id: toastId });
+        }
+    };
+
+    const stopSequenceManually = async (leadId: string) => {
+        if (!user) return;
+        if (!window.confirm('Mark this lead as replied and stop all future follow-ups?')) return;
+
+        const toastId = toast.loading('Stopping sequence...');
+        try {
+            const { error } = await supabase
+                .from('lead_sequences')
+                .update({ status: 'replied' })
+                .eq('lead_id', leadId);
+            
+            if (error) throw error;
+            
+            setLeads(leads.map(l => l.id === leadId ? { ...l, sequence_status: 'replied' } : l));
+            toast.success('Sequence stopped (Marked as Replied)', { id: toastId });
+        } catch (err) {
+            console.error('Error stopping sequence:', err);
+            toast.error('Failed to stop sequence', { id: toastId });
         }
     };
 
@@ -767,11 +743,16 @@ const LeadsList = () => {
 
     const filteredLeads = leads
         .filter(lead => {
-            const text = `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''} ${lead.industry || ''}`.toLowerCase();
+            const techStr = (lead.technographics || []).join(' ');
+            const text = `${lead.first_name || ''} ${lead.last_name || ''} ${lead.email || ''} ${lead.company || ''} ${lead.industry || ''} ${techStr}`.toLowerCase();
             const matchesSearch = text.includes(searchTerm.toLowerCase());
             const matchesCompany = companyFilter === 'all' || lead.company === companyFilter;
             const matchesSource = sourceFilter === 'all' || (lead.source || 'scraper') === sourceFilter;
-            return matchesSearch && matchesCompany && matchesSource;
+            
+            const matchesSequence = sequenceFilter === 'all' || 
+                (sequenceFilter === 'not_enrolled' ? !lead.sequence_status : lead.sequence_status === sequenceFilter);
+
+            return matchesSearch && matchesCompany && matchesSource && matchesSequence;
         })
         .sort((a, b) => {
             if (sortBy === 'newest') return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
@@ -971,7 +952,7 @@ const LeadsList = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative z-[30]">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative z-[30] min-h-[450px]">
                     <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 rounded-t-2xl relative z-[40]">
                         <div className="relative w-full sm:w-80 group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1b57b1] transition-colors" size={18} />
@@ -1039,6 +1020,21 @@ const LeadsList = () => {
                                 ]}
                             />
 
+                            {/* Sequence Filter */}
+                            <CustomSelect
+                                value={sequenceFilter}
+                                onChange={setSequenceFilter}
+                                className="min-w-[160px]"
+                                options={[
+                                    { label: 'All Sequences', value: 'all' },
+                                    { label: 'Follow-up Active', value: 'active' },
+                                    { label: 'Replied (Stopped)', value: 'replied' },
+                                    { label: 'Paused', value: 'paused' },
+                                    { label: 'Completed', value: 'completed' },
+                                    { label: 'Not Enrolled', value: 'not_enrolled' }
+                                ]}
+                            />
+
                             {/* Sort Filter */}
                             <CustomSelect
                                 value={sortBy}
@@ -1056,7 +1052,7 @@ const LeadsList = () => {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto pb-4 rounded-b-2xl">
+                    <div className="overflow-x-auto rounded-b-2xl no-scrollbar" style={{ paddingBottom: '400px', marginBottom: '-400px' }}>
                         <table className="w-full min-w-[1300px] text-left border-collapse">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50">
@@ -1080,6 +1076,7 @@ const LeadsList = () => {
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Date Created</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Source</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Email Sent</th>
+                                    <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest whitespace-nowrap">Sequence</th>
                                     <th className="p-4 text-xs font-bold text-slate-500 uppercase tracking-widest text-right sticky right-0 z-[110] bg-slate-50 shadow-[-1px_0_0_0_rgba(0,0,0,0.05)]">Actions</th>
                                 </tr>
                             </thead>
@@ -1206,16 +1203,24 @@ const LeadsList = () => {
                                             <td className="p-4">
                                                 <div className="max-w-[180px] flex flex-wrap gap-1">
                                                     {lead.technographics && lead.technographics.length > 0 ? (
-                                                        lead.technographics.slice(0, 2).map((tech, idx) => (
-                                                            <span key={idx} className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 rounded text-[9px] font-medium border border-indigo-100">
+                                                        lead.technographics.slice(0, 3).map((tech, idx) => (
+                                                            <span key={idx} className={`px-1.5 py-0.5 rounded text-[9px] font-bold border ${
+                                                                tech === 'Shopify' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                                                tech === 'WordPress' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                                                                tech.includes('Analytics') ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                                                                tech.includes('Pixel') ? 'bg-purple-50 text-purple-700 border-purple-100' :
+                                                                'bg-slate-50 text-slate-600 border-slate-200'
+                                                            }`}>
                                                                 {tech}
                                                             </span>
                                                         ))
                                                     ) : (
-                                                        <span className="text-slate-300 italic text-[10px]">None</span>
+                                                        <span className="text-slate-300 italic text-[10px]">
+                                                            {lead.audit_score ? 'None Detected' : 'Not Audited'}
+                                                        </span>
                                                     )}
-                                                    {lead.technographics && lead.technographics.length > 2 && (
-                                                        <span className="text-[9px] text-slate-400">+{lead.technographics.length - 2}</span>
+                                                    {lead.technographics && lead.technographics.length > 3 && (
+                                                        <span className="text-[9px] font-bold text-slate-400 self-center ml-0.5">+{lead.technographics.length - 3}</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -1258,6 +1263,29 @@ const LeadsList = () => {
                                                         <span className="w-1.5 h-1.5 rounded-full bg-slate-300 inline-block"></span>
                                                         Not Sent
                                                     </span>
+                                                )}
+                                            </td>
+                                            <td className="p-4">
+                                                {lead.sequence_status ? (
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 text-[10px] font-bold rounded border whitespace-nowrap ${
+                                                            lead.sequence_status === 'active' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                                            lead.sequence_status === 'paused' ? 'bg-amber-50 text-amber-700 border-amber-200' :
+                                                            lead.sequence_status === 'replied' ? 'bg-blue-50 text-blue-700 border-blue-200' :
+                                                            'bg-slate-50 text-slate-500 border-slate-200'
+                                                        }`}>
+                                                            {lead.sequence_status === 'active' ? 'Follow-up Active' : 
+                                                             lead.sequence_status === 'replied' ? 'Replied (Stopped)' : 
+                                                             lead.sequence_status.charAt(0).toUpperCase() + lead.sequence_status.slice(1)}
+                                                        </span>
+                                                        {lead.sequence_status === 'active' && lead.next_followup && (
+                                                            <span className="text-[9px] text-slate-400 font-bold uppercase tracking-tighter">
+                                                                Step {(lead.sequence_step || 0) + 1} • Due {new Date(lead.next_followup).toLocaleDateString()}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                ) : (
+                                                    <span className="text-[10px] text-slate-300 font-medium italic">Not Enrolled</span>
                                                 )}
                                             </td>
                                             <td className={`p-4 text-right sticky right-0 bg-white group-hover:bg-slate-50 transition-all shadow-[-1px_0_0_0_rgba(0,0,0,0.05)] ${dropdownOpenId === lead.id ? 'z-[101]' : 'z-[100]'}`}>

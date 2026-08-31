@@ -2,8 +2,14 @@ import 'dotenv/config';
 import pkg from 'pg';
 const { Client } = pkg;
 
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString || connectionString.includes('[YOUR-PASSWORD]')) {
+  console.error('Error: Please configure DATABASE_URL in your .env file with your actual database password.');
+  process.exit(1);
+}
+
 const client = new Client({
-  connectionString: 'postgresql://postgres.cbvcgofjytbmjwebygkc:bz40cohjdayMhTtt@aws-0-ap-southeast-1.pooler.supabase.com:6543/postgres'
+  connectionString
 });
 
 async function runMigration() {

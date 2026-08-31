@@ -50,8 +50,39 @@ const ResetPassword = () => {
 
             if (error) throw error;
 
-            // Update the profile status to Active since they have now completed the invite loop
-            await supabase.from('profiles').update({ status: 'Active' }).eq('id', session.user.id);
+            // Fetch current profile status & name
+            let profileData = null;
+            try {
+                const { data } = await supabase
+                    .from('profiles')
+                    .select('status, full_name')
+                    .eq('id', session.user.id)
+                    .single();
+                profileData = data;
+            } catch (err) {
+                console.error("Error fetching profile on password update:", err);
+            }
+
+            const currentStatus = profileData?.status;
+            const fullName = profileData?.full_name || session.user.user_metadata?.full_name || 'Valued User';
+
+            // Only update to Active and send welcome email if completing onboarding (Pending Approval)
+            if (currentStatus === 'Pending Approval') {
+                await supabase.from('profiles').update({ status: 'Active' }).eq('id', session.user.id);
+
+                // Send welcome email via Edge Function
+                try {
+                    await supabase.functions.invoke('contact-form', {
+                        body: {
+                            action: 'welcome',
+                            fullName: fullName,
+                            email: session.user.email,
+                        }
+                    });
+                } catch (emailErr) {
+                    console.error("Failed to send welcome email:", emailErr);
+                }
+            }
 
             // Immediately clear the session so they are forced to log in with their new credentials
             await supabase.auth.signOut();

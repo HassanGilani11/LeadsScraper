@@ -33,6 +33,11 @@ const Settings = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
+    // Webhook states
+    const [webhookUrl, setWebhookUrl] = useState('');
+    const [webhookEnabled, setWebhookEnabled] = useState(false);
+    const [testLoading, setTestLoading] = useState(false);
+
     // Initialize form with user data
     React.useEffect(() => {
         if (user) {
@@ -42,6 +47,8 @@ const Settings = () => {
             setEmail(user.email || '');
             setCompany(user.company || '');
             setAvatarUrl(user.avatar_url || '');
+            setWebhookUrl(user.webhook_url || '');
+            setWebhookEnabled(user.webhook_enabled || false);
         }
     }, [user]);
 
@@ -80,17 +87,17 @@ const Settings = () => {
 
         try {
             const fileExt = file.name.split('.').pop();
-            const fileName = `${user.id}/${Math.random()}.${fileExt}`;
+            const fileName = `avatars/${user.id}/${Math.random()}.${fileExt}`;
             const filePath = `${fileName}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('Profile')
+                .from('Upload')
                 .upload(filePath, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
-                .from('Profile')
+                .from('Upload')
                 .getPublicUrl(filePath);
 
             setAvatarUrl(publicUrl);
@@ -135,16 +142,16 @@ const Settings = () => {
 
         try {
             const fileExt = file.name.split('.').pop();
-            const fileName = `favicon-${Date.now()}.${fileExt}`;
+            const fileName = `settings/favicon-${Date.now()}.${fileExt}`;
 
             const { error: uploadError } = await supabase.storage
-                .from('Settings')
+                .from('Upload')
                 .upload(fileName, file, { upsert: true });
 
             if (uploadError) throw uploadError;
 
             const { data: { publicUrl } } = supabase.storage
-                .from('Settings')
+                .from('Upload')
                 .getPublicUrl(fileName);
 
             setFaviconUrl(publicUrl);
@@ -216,6 +223,13 @@ const Settings = () => {
         setError(null);
 
         try {
+            let settingsId = siteSettings?.id;
+            if (!settingsId) {
+                const { data } = await supabase.from('site_settings').select('id').single();
+                settingsId = data?.id;
+            }
+            if (!settingsId) throw new Error('Site settings record not found.');
+
             const { error: updateError } = await supabase
                 .from('site_settings')
                 .update({
@@ -223,12 +237,12 @@ const Settings = () => {
                     meta_description: metaDescription,
                     favicon_url: faviconUrl
                 })
-                .eq('id', siteSettings?.id || 1);
+                .eq('id', settingsId);
 
             if (updateError) throw updateError;
 
             const newSettings = {
-                id: siteSettings?.id || '1',
+                id: settingsId,
                 site_title: siteTitle,
                 meta_description: metaDescription,
                 favicon_url: faviconUrl
@@ -293,6 +307,91 @@ const Settings = () => {
         }
     };
 
+    const handleSaveWebhookSettings = async () => {
+        if (!user) return;
+        setLoading(true);
+        setSaveSuccess(false);
+        setError(null);
+
+        try {
+            const { error: updateError } = await supabase
+                .from('profiles')
+                .update({
+                    webhook_url: webhookUrl,
+                    webhook_enabled: webhookEnabled
+                })
+                .eq('id', user.id);
+
+            if (updateError) throw updateError;
+
+            setUser({
+                ...user,
+                webhook_url: webhookUrl,
+                webhook_enabled: webhookEnabled
+            });
+
+            await logAuditAction({
+                actionType: 'PROFILE_UPDATED',
+                targetEntity: user.email,
+                beforeValue: { webhook_url: user.webhook_url, webhook_enabled: user.webhook_enabled },
+                afterValue: { webhook_url: webhookUrl, webhook_enabled: webhookEnabled },
+                note: 'User updated webhook / integrations settings'
+            });
+
+            setSaveSuccess(true);
+            toast.success('Integration settings updated successfully');
+        } catch (err: any) {
+            toast.error(err.message || 'Error updating integration settings');
+            console.error('Error updating integration settings:', err);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleSendTestWebhook = async () => {
+        if (!webhookUrl) {
+            toast.error('Please enter a Webhook URL first.');
+            return;
+        }
+
+        setTestLoading(true);
+        try {
+            const response = await fetch(webhookUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    event: 'lead.scraped_test',
+                    timestamp: new Date().toISOString(),
+                    user_email: user?.email || 'test@example.com',
+                    leads: [
+                        {
+                            first_name: "Ibrahim",
+                            last_name: "Aziz",
+                            email: "ibrahim@example.com",
+                            company: "Example Corp",
+                            job_title: "Software Engineer",
+                            linkedin_url: "https://linkedin.com/in/ibrahim",
+                            source: "scraper"
+                        }
+                    ]
+                })
+            });
+
+            if (response.ok) {
+                toast.success('Test payload sent successfully!');
+            } else {
+                toast.error(`Webhook returned status ${response.status}`);
+            }
+        } catch (err: any) {
+            toast.error(err.message || 'Failed to trigger test webhook. Check for CORS or network issues.');
+            console.error('Test Webhook Error:', err);
+        } finally {
+            setTestLoading(false);
+        }
+    };
+
     const handleMainAction = () => {
         if (activeTab === 'profile') {
             handleSaveProfile();
@@ -300,6 +399,8 @@ const Settings = () => {
             handlePasswordUpdate();
         } else if (activeTab === 'site') {
             handleSaveSiteSettings();
+        } else if (activeTab === 'integrations') {
+            handleSaveWebhookSettings();
         }
     };
 
@@ -512,10 +613,53 @@ const Settings = () => {
                             )}
 
                             {activeTab === 'integrations' && (
-                                <div className="p-8 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-center">
-                                    <LayoutGrid size={40} className="text-slate-300 mb-4" />
-                                    <h4 className="font-bold text-slate-900">Advanced Integrations Coming Soon</h4>
-                                    <p className="text-sm text-slate-500 max-w-xs mt-1">We're currently building direct connections to Salesforce, HubSpot, and Slack.</p>
+                                <div className="space-y-6 max-w-2xl">
+                                    <div className="bg-white border border-slate-200 p-6 rounded-2xl shadow-sm space-y-6">
+                                        <div>
+                                            <h3 className="text-lg font-bold text-slate-950">Webhook & Zapier</h3>
+                                            <p className="text-xs text-slate-500 mt-1 font-medium">Automatically export new scraped leads to any webhook URL (e.g. Zapier, Make.com, or your custom CRM endpoint).</p>
+                                        </div>
+
+                                        <div className="space-y-4">
+                                            <div className="flex items-center justify-between p-4 border border-slate-100 rounded-xl bg-slate-50/50">
+                                                <div>
+                                                    <p className="font-bold text-slate-900 text-sm">Enable Webhook Delivery</p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">Send a POST request automatically whenever new leads are extracted.</p>
+                                                </div>
+                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                    <input 
+                                                        type="checkbox" 
+                                                        className="sr-only peer" 
+                                                        checked={webhookEnabled}
+                                                        onChange={(e) => setWebhookEnabled(e.target.checked)}
+                                                    />
+                                                    <div className="w-11 h-6 bg-slate-200 rounded-full peer peer-checked:bg-[#1b57b1] after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div>
+                                                </label>
+                                            </div>
+
+                                            <div className="space-y-2">
+                                                <label className="text-sm font-bold text-slate-700">Webhook Destination URL</label>
+                                                <div className="flex gap-3">
+                                                    <input 
+                                                        type="url" 
+                                                        value={webhookUrl} 
+                                                        onChange={(e) => setWebhookUrl(e.target.value)}
+                                                        placeholder="https://hooks.zapier.com/hooks/catch/..."
+                                                        className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:ring-4 focus:ring-[#1b57b1]/10 focus:border-[#1b57b1] outline-none transition-all shadow-sm" 
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleSendTestWebhook}
+                                                        disabled={testLoading || !webhookUrl}
+                                                        className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-bold transition-all border border-slate-200 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                    >
+                                                        {testLoading ? <Loader2 size={16} className="animate-spin" /> : 'Send Test'}
+                                                    </button>
+                                                </div>
+                                                <p className="text-[10px] text-slate-400 font-medium">Compatible with Zapier "Catch Webhook" trigger. CORS configuration on the destination URL must allow client-side test POST requests.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                             {activeTab === 'site' && user?.role === 'Admin' && (
@@ -583,10 +727,10 @@ const Settings = () => {
                         {saveSuccess && (
                             <div className="flex items-center gap-2 text-green-600 font-bold text-sm animate-in fade-in slide-in-from-right-2">
                                 <CheckCircle2 size={18} />
-                                {activeTab === 'security' ? 'Password updated!' : (activeTab === 'site' ? 'Settings updated!' : 'Profile updated!')}
+                                {activeTab === 'security' ? 'Password updated!' : (activeTab === 'site' ? 'Settings updated!' : (activeTab === 'integrations' ? 'Integrations updated!' : 'Profile updated!'))}
                             </div>
                         )}
-                        {(activeTab === 'profile' || activeTab === 'security' || activeTab === 'site') && (
+                        {(activeTab === 'profile' || activeTab === 'security' || activeTab === 'site' || activeTab === 'integrations') && (
                             <>
                                 <button 
                                     disabled={loading}
@@ -602,6 +746,9 @@ const Settings = () => {
                                             setSiteTitle(siteSettings?.site_title || '');
                                             setMetaDescription(siteSettings?.meta_description || '');
                                             setFaviconUrl(siteSettings?.favicon_url || '');
+                                        } else if (activeTab === 'integrations') {
+                                            setWebhookUrl(user?.webhook_url || '');
+                                            setWebhookEnabled(user?.webhook_enabled || false);
                                         }
                                         setError(null);
                                     }}

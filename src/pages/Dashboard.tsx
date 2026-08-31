@@ -270,9 +270,9 @@ const Dashboard = () => {
                                         data={stats.industryDist}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={5}
+                                        innerRadius={55}
+                                        outerRadius={75}
+                                        paddingAngle={stats.industryDist.length > 1 ? 5 : 0}
                                         dataKey="value"
                                         stroke="none"
                                         animationDuration={1500}

@@ -34,12 +34,36 @@ const AssignToCampaignModal: React.FC<AssignToCampaignModalProps> = ({ open, onC
 
         try {
             const leadIds = leads.map(l => l.id);
-            const { error } = await supabase
+            const { error: updateError } = await supabase
                 .from('leads')
                 .update({ campaign_id: selectedCampaignId })
                 .in('id', leadIds);
 
-            if (error) throw error;
+            if (updateError) throw updateError;
+
+            // ENROLL IN SEQUENCE
+            // Check if campaign has steps
+            const { data: steps } = await supabase
+                .from('campaign_steps')
+                .select('id, delay_days')
+                .eq('campaign_id', selectedCampaignId)
+                .order('step_number', { ascending: true });
+
+            if (steps && steps.length > 0) {
+                const sequencesToInsert = leads.map(lead => ({
+                    lead_id: lead.id,
+                    campaign_id: selectedCampaignId,
+                    user_id: lead.user_id,
+                    status: 'active',
+                    current_step_number: 0,
+                    next_send_at: new Date().toISOString()
+                }));
+
+                // Using upsert to prevent duplicates if lead was already in sequence
+                await supabase.from('lead_sequences').upsert(sequencesToInsert, {
+                    onConflict: 'lead_id,campaign_id'
+                });
+            }
 
             // Update local state
             leads.forEach(lead => {

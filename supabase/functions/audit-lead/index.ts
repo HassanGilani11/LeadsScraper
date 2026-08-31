@@ -53,6 +53,7 @@ Deno.serve(async (req: Request) => {
         headers: {
           'User-Agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15E148 Safari/604.1',
         },
+        signal: AbortSignal.timeout(15000), // 15-second timeout for slow sites
       });
       const endTime = performance.now();
       loadTimeMs = Math.round(endTime - startTime);
@@ -169,7 +170,39 @@ Deno.serve(async (req: Request) => {
     // Ensure score is 0-100
     score = Math.min(100, Math.max(0, score));
 
-    // 6. Save to Database
+    // 6. Detect Technologies
+    const technologies = [];
+    if (html) {
+      const techSignatures = [
+        { name: 'Shopify', pattern: /cdn\.shopify\.com|shopify-pay/i },
+        { name: 'WordPress', pattern: /wp-content|wp-includes/i },
+        { name: 'WooCommerce', pattern: /woocommerce|wc-ajax/i },
+        { name: 'Wix', pattern: /wix\.com|wixstatic/i },
+        { name: 'Squarespace', pattern: /squarespace\.com|sqsp\.net/i },
+        { name: 'Magento', pattern: /magento|varien/i },
+        { name: 'Google Analytics', pattern: /google-analytics\.com|ga\.js|googletagmanager\.com/i },
+        { name: 'Meta Pixel', pattern: /connect\.facebook\.net|fbevents\.js/i },
+        { name: 'TikTok Pixel', pattern: /analytics\.tiktok\.com|ttq\.track/i },
+        { name: 'HubSpot', pattern: /js\.hs-scripts\.com|hubspot\.js/i },
+        { name: 'Mailchimp', pattern: /chimpstatic\.com|mailchimp\.com/i },
+        { name: 'Klaviyo', pattern: /klaviyo\.com|static\.klaviyo\.com/i },
+        { name: 'Intercom', pattern: /intercomcdn\.com|intercom\.io/i },
+        { name: 'Drift', pattern: /driftt\.com|drift\.js/i },
+        { name: 'Hotjar', pattern: /static\.hotjar\.com|hotjar\.js/i },
+        { name: 'Gorgias', pattern: /gorgias\.chat|gorgias\.io/i },
+        { name: 'Yotpo', pattern: /yotpo\.com/i },
+        { name: 'Loox', pattern: /loox\.io/i },
+        { name: 'Webflow', pattern: /webflow\.com|w-nav/i }
+      ];
+
+      for (const tech of techSignatures) {
+        if (tech.pattern.test(html)) {
+          technologies.push(tech.name);
+        }
+      }
+    }
+
+    // 7. Save Audit Record
     const { data: auditRecord, error: dbError } = await supabase
       .from('lead_audits')
       .insert({
@@ -189,7 +222,8 @@ Deno.serve(async (req: Request) => {
           user_agent: 'StitchLeadScraper-AuditBot/1.0',
           ...auditData,
           hasH1: finalHasH1,
-          hasMetaDescription: auditData.hasMetaDescription || seoStrong
+          hasMetaDescription: auditData.hasMetaDescription || seoStrong,
+          technologies: technologies
         }
       })
       .select()
@@ -199,6 +233,23 @@ Deno.serve(async (req: Request) => {
       throw dbError;
     }
 
+    // 8. Update Lead with Technologies (Merging with existing)
+    const { data: existingLead } = await supabase
+      .from('leads')
+      .select('technographics')
+      .eq('id', leadId)
+      .single();
+
+    const existingTechs = existingLead?.technographics || [];
+    const mergedTechs = [...new Set([...existingTechs, ...technologies])];
+
+    await supabase
+      .from('leads')
+      .update({
+        technographics: mergedTechs
+      })
+      .eq('id', leadId);
+
     return new Response(JSON.stringify({ success: true, data: auditRecord }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -206,8 +257,11 @@ Deno.serve(async (req: Request) => {
 
   } catch (error: any) {
     console.error('Audit Error:', error);
-    return new Response(JSON.stringify({ success: false, error: error.message }), {
-      status: 500,
+    // Return 200 so the Supabase JS client does not throw a generic
+    // "Edge Function returned a non-2xx status code" error.
+    // The caller checks `data.success` to detect failures.
+    return new Response(JSON.stringify({ success: false, error: error.message || 'Audit failed unexpectedly' }), {
+      status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }

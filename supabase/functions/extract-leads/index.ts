@@ -324,29 +324,60 @@ ${cleanText.substring(0, 20000)}
         };
       });
 
-      const { data, error } = await supabase
+      const { data: insertedLeads, error: insertError } = await supabase
         .from('leads')
         .insert(leadsToInsert)
         .select();
 
-      if (error) {
-        console.error('Supabase Error:', error);
+      if (insertError) {
+        console.error('Supabase Error:', insertError);
         return new Response(
           JSON.stringify({ 
             success: false,
             error: 'Failed to save leads to database.', 
-            details: error,
+            details: insertError,
             leads: leads 
           }), 
           { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
 
+      // Automatically enroll in sequence if campaign has steps
+      if (campaignId && insertedLeads && insertedLeads.length > 0) {
+        try {
+          const { data: steps } = await supabase
+            .from('campaign_steps')
+            .select('id')
+            .eq('campaign_id', campaignId)
+            .limit(1);
+
+          if (steps && steps.length > 0) {
+            const sequencesToInsert = insertedLeads.map(lead => ({
+              lead_id: lead.id,
+              campaign_id: campaignId,
+              user_id: userId,
+              status: 'active',
+              current_step_number: 0,
+              next_send_at: new Date().toISOString()
+            }));
+
+            await supabase
+              .from('lead_sequences')
+              .upsert(sequencesToInsert, { onConflict: 'lead_id,campaign_id' });
+            
+            console.log(`Enrolled ${insertedLeads.length} leads in sequence for campaign ${campaignId}`);
+          }
+        } catch (seqErr) {
+          console.error('Sequence Enrollment Error:', seqErr);
+          // Don't fail the whole request if enrollment fails
+        }
+      }
+
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: `Extracted and saved ${leads.length} leads`,
-          leads: data 
+          leads: insertedLeads 
         }), 
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );

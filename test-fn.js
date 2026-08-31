@@ -1,5 +1,7 @@
-const url = 'https://cbvcgofjytbmjwebygkc.supabase.co/functions/v1/extract-leads';
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNidmNnb2ZqeXRibWp3ZWJ5Z2tjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2OTU3MTcsImV4cCI6MjA4OTI3MTcxN30.bz40cohjdayMhTtt-kjcUOY6006LwdSeNmlu6Z-6L94';
+import 'dotenv/config';
+
+const url = `${process.env.VITE_SUPABASE_URL}/functions/v1/extract-leads`;
+const key = process.env.VITE_SUPABASE_ANON_KEY;
 
 async function test() {
   const res = await fetch(url, {

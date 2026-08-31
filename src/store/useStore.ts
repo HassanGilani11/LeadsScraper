@@ -13,6 +13,8 @@ interface UserProfile {
     avatar_url?: string;
     last_reset_date?: string;
     status?: string;
+    webhook_url?: string;
+    webhook_enabled?: boolean;
 }
 
 export interface Campaign {
@@ -78,6 +80,9 @@ export interface Lead {
     load_time_ms?: number;
     ssl_enabled?: boolean;
     mobile_friendly?: boolean;
+    sequence_status?: string | null;
+    sequence_step?: number;
+    next_followup?: string | null;
 }
 
 export interface Notification {

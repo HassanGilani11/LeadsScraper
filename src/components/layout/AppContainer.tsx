@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import TopBar from './TopBar';
+import { useStore } from '@/store/useStore';
 
 interface AppContainerProps {
     children: React.ReactNode;
@@ -9,6 +10,22 @@ interface AppContainerProps {
 
 const AppContainer: React.FC<AppContainerProps> = ({ children, title }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
+    const { siteSettings } = useStore();
+
+    useEffect(() => {
+        if (siteSettings) {
+            const baseTitle = siteSettings.site_title || 'SyntexDev';
+            document.title = title ? `${title} | ${baseTitle}` : baseTitle;
+            
+            // Update meta description
+            if (siteSettings.meta_description) {
+                const metaDesc = document.querySelector('meta[name="description"]');
+                if (metaDesc) {
+                    metaDesc.setAttribute('content', siteSettings.meta_description);
+                }
+            }
+        }
+    }, [title, siteSettings]);
 
     return (
         <div className="flex h-screen overflow-hidden max-w-full overflow-x-hidden bg-[#f6f7f8] text-slate-900">

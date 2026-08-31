@@ -19,15 +19,18 @@ import {
     ArrowUpDown,
     MoreVertical,
     Edit2,
-    Eye
+    Eye,
+    BarChart3
 } from 'lucide-react';
 import CreateCampaignModal from '@/components/modals/CreateCampaignModal';
+import CampaignAnalyticsModal from '@/components/modals/CampaignAnalyticsModal';
 import { logAuditAction } from '@/utils/auditLogger';
 import CustomSelect from '@/components/ui/CustomSelect';
 
 const Campaigns = () => {
     const { campaigns, setCampaigns, addCampaign, user, searchQuery, setSearchQuery } = useStore();
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isAnalyticsOpen, setIsAnalyticsOpen] = useState(false);
     const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
     const [sortBy, setSortBy] = useState('newest');
     const [selectedRows, setSelectedRows] = useState<string[]>([]);
@@ -251,7 +254,7 @@ const Campaigns = () => {
                 </div>
 
                 {/* Table Section */}
-                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative z-[30]">
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col relative z-[30] min-h-[400px]">
                     <div className="p-4 sm:p-5 border-b border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 bg-slate-50/50 rounded-t-2xl relative z-[40]">
                         <div className="relative w-full sm:w-80 group">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#1b57b1] transition-colors" size={18} />
@@ -280,7 +283,7 @@ const Campaigns = () => {
                         </div>
                     </div>
 
-                    <div className="overflow-x-auto rounded-b-2xl">
+                    <div className="overflow-x-auto rounded-b-2xl no-scrollbar" style={{ paddingBottom: '320px', marginBottom: '-320px' }}>
                         <table className="w-full text-left border-collapse min-w-[800px]">
                             <thead>
                                 <tr className="border-b border-slate-100 bg-slate-50/80">
@@ -369,6 +372,15 @@ const Campaigns = () => {
 
                                                             <button
                                                                 type="button"
+                                                                onClick={() => { setSelectedCampaign(campaign); setIsAnalyticsOpen(true); setDropdownOpenId(null); }}
+                                                                className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-[#1b57b1] bg-[#1b57b1]/5 hover:bg-[#1b57b1]/10 rounded-lg transition-colors group/item"
+                                                            >
+                                                                <BarChart3 size={16} className="text-[#1b57b1]" />
+                                                                View Analytics
+                                                            </button>
+
+                                                            <button
+                                                                type="button"
                                                                 onClick={() => { handleToggleStatus(campaign.id, campaign.status); setDropdownOpenId(null); }}
                                                                 className="w-full text-left flex items-center gap-2.5 px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-[#1b57b1]/5 hover:text-[#1b57b1] rounded-lg transition-colors group/item"
                                                             >
@@ -441,6 +453,17 @@ const Campaigns = () => {
                 }} 
                 campaign={selectedCampaign}
             />
+
+            {selectedCampaign && (
+                <CampaignAnalyticsModal
+                    open={isAnalyticsOpen}
+                    onClose={() => {
+                        setIsAnalyticsOpen(false);
+                        setSelectedCampaign(null);
+                    }}
+                    campaign={selectedCampaign}
+                />
+            )}
         </AppContainer>
     );
 };

@@ -18,11 +18,15 @@ const Auth = () => {
     const location = useLocation();
     const setSession = useStore((state) => state.setSession);
 
-    // Get message from navigation state (e.g., from ResetPassword)
+    // Get message or error from navigation state
     React.useEffect(() => {
         if (location.state?.message) {
             setSuccessMsg(location.state.message);
             // Clear state so message doesn't persist on refresh
+            window.history.replaceState({}, document.title);
+        } else if (location.state?.error) {
+            setError(location.state.error);
+            // Clear state so error doesn't persist on refresh
             window.history.replaceState({}, document.title);
         }
     }, [location.state]);

@@ -24,6 +24,7 @@ import ContactEnquiries from '@/pages/admin/ContactEnquiries';
 import Privacy from '@/pages/Privacy';
 import Terms from '@/pages/Terms';
 import Contact from '@/pages/Contact';
+import AuthCallback from '@/pages/AuthCallback';
 
 const App = () => {
     const { session, setSession, user, setUser, setLoading, isLoading, setCampaigns, siteSettings, setSiteSettings } = useStore();
@@ -80,27 +81,51 @@ const App = () => {
 
         // Initial session check — primary source of truth on page load
         supabase.auth.getSession().then(({ data: { session } }) => {
-            setSession(session);
             if (session?.user) {
+                setSession(session);
                 initialFetchDone = true;
                 fetchProfile(session.user.id, session.user.email!);
             } else {
+                setSession(null);
                 setLoading(false);
             }
         });
 
         // Listen for auth changes — only re-fetch on explicit sign-in events,
         // NOT on TOKEN_REFRESHED which would cause a race condition that overwrites the correct count
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            setSession(session);
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
             if (session?.user && (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY')) {
-                if (!initialFetchDone) {
-                    fetchProfile(session.user.id, session.user.email!);
+                try {
+                    const { data: profile } = await supabase
+                        .from('profiles')
+                        .select('status')
+                        .eq('id', session.user.id)
+                        .single();
+
+                    if (profile && profile.status !== 'Active') {
+                        console.warn(`Auth Change Blocked: User status is ${profile.status}`);
+                        await supabase.auth.signOut();
+                        setSession(null);
+                        setUser(null);
+                        setLoading(false);
+                    } else {
+                        setSession(session);
+                        if (!initialFetchDone) {
+                            fetchProfile(session.user.id, session.user.email!);
+                        }
+                        initialFetchDone = false;
+                    }
+                } catch (err: any) {
+                    console.error("Error checking status on auth change:", err);
+                    setSession(session);
+                    setLoading(false);
                 }
-                initialFetchDone = false; // allow future sign-ins to re-fetch
-            } else if (!session) {
-                setUser(null);
-                setLoading(false);
+            } else {
+                setSession(session);
+                if (!session) {
+                    setUser(null);
+                    setLoading(false);
+                }
             }
         });
 
@@ -152,6 +177,22 @@ const App = () => {
                 .single();
 
             if (data) {
+                // If user is not Active, terminate session immediately
+                if (data.status !== 'Active') {
+                    console.warn(`App Startup: User status is ${data.status}. Terminating session...`);
+                    await supabase.auth.signOut();
+                    setSession(null);
+                    setUser(null);
+                    setLoading(false);
+                    navigate('/auth', { 
+                        state: { 
+                            error: `Your account is ${data.status.toLowerCase()}. Please contact support.` 
+                        },
+                        replace: true
+                    });
+                    return;
+                }
+
                 let currentCredits = data.credits;
                 let lastReset = new Date(data.last_reset_date || data.created_at);
                 const now = new Date();
@@ -195,41 +236,50 @@ const App = () => {
                     avatar_url: data.avatar_url || '',
                     last_reset_date: needsReset ? now.toISOString() : data.last_reset_date,
                     status: data.status || 'Active',
+                    webhook_url: data.webhook_url || '',
+                    webhook_enabled: data.webhook_enabled || false
                 });
                 
                 // Set loading to false as soon as we have the profile, then fetch campaigns in background
                 setLoading(false);
                 await fetchCampaigns(data.id);
-            } else if (!error) {
-                // If profile doesn't exist, create a default one
-                const newProfile = {
-                    id: userId,
-                    user_id: userId,
-                    email: email,
-                    full_name: 'New User',
-                    role: 'Member',
-                    plan: 'Starter' as const,
-                    credits: 0,
-                    max_credits: 20,
-                    last_reset_date: new Date().toISOString(),
-                    status: 'Active'
-                };
-                await supabase.from('profiles').insert(newProfile);
-                setUser({
-                    id: newProfile.id,
-                    email: newProfile.email,
-                    full_name: newProfile.full_name,
-                    role: newProfile.role,
-                    plan: newProfile.plan,
-                    credits: newProfile.credits,
-                    max_credits: newProfile.max_credits,
-                    company: '',
-                    avatar_url: '',
-                    last_reset_date: newProfile.last_reset_date,
-                    status: newProfile.status
-                });
-                setLoading(false);
-                await fetchCampaigns(newProfile.id);
+            } else {
+                // Check if this is a "row not found" error (PGRST116)
+                if (error && error.code === 'PGRST116') {
+                    // If profile doesn't exist, create a default one
+                    const newProfile = {
+                        id: userId,
+                        user_id: userId,
+                        email: email,
+                        full_name: 'New User',
+                        role: 'Member',
+                        plan: 'Starter' as const,
+                        credits: 0,
+                        max_credits: 20,
+                        last_reset_date: new Date().toISOString(),
+                        status: 'Active'
+                    };
+                    await supabase.from('profiles').insert(newProfile);
+                    setUser({
+                        id: newProfile.id,
+                        email: newProfile.email,
+                        full_name: newProfile.full_name,
+                        role: newProfile.role,
+                        plan: newProfile.plan,
+                        credits: newProfile.credits,
+                        max_credits: newProfile.max_credits,
+                        company: '',
+                        avatar_url: '',
+                        last_reset_date: newProfile.last_reset_date,
+                        status: newProfile.status
+                    });
+                    setLoading(false);
+                    await fetchCampaigns(newProfile.id);
+                } else {
+                    // It is a real error (connection error, RLS violation, etc.)
+                    console.error('Error fetching profile:', error);
+                    setLoading(false);
+                }
             }
         } catch (err) {
             console.error('Error fetching profile:', err);
@@ -249,6 +299,7 @@ const App = () => {
         <>
             <Routes>
                 <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+                <Route path="/auth/callback" element={<AuthCallback />} />
                 
                 <Route 
                     path="/auth" 
