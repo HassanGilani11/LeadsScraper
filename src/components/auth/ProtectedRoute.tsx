@@ -8,40 +8,70 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-    const { session, isLoading, setSession, setUser } = useStore();
+    const { session, user, isLoading, setSession, setUser } = useStore();
     const location = useLocation();
     const navigate = useNavigate();
 
     useEffect(() => {
-        if (!session?.user?.id) return;
+        if (!session?.user) return;
 
-        const checkUserStatus = async () => {
+        const syncProfile = async () => {
             try {
-                const { data, error } = await supabase
+                let { data } = await supabase
                     .from('profiles')
-                    .select('status')
+                    .select('*')
                     .eq('id', session.user.id)
-                    .single();
+                    .maybeSingle();
 
-                if (data && data.status !== 'Active') {
-                    console.warn(`Protected Route: User status is ${data.status}. Logging out...`);
-                    await supabase.auth.signOut();
-                    setSession(null);
-                    setUser(null);
-                    navigate('/auth', { 
-                        state: { 
-                            error: `Your account is ${data.status.toLowerCase()}. Please contact support.` 
-                        },
-                        replace: true
+                if (!data && session.user.email) {
+                    const { data: emailData } = await supabase
+                        .from('profiles')
+                        .select('*')
+                        .eq('email', session.user.email)
+                        .maybeSingle();
+                    if (emailData) data = emailData;
+                }
+
+                if (data) {
+                    if (data.status !== 'Active') {
+                        console.warn(`Protected Route: User status is ${data.status}. Logging out...`);
+                        await supabase.auth.signOut();
+                        setSession(null);
+                        setUser(null);
+                        navigate('/auth', { 
+                            state: { 
+                                error: `Your account is ${data.status.toLowerCase()}. Please contact support.` 
+                            },
+                            replace: true
+                        });
+                        return;
+                    }
+
+                    setUser({
+                        id: data.id,
+                        email: data.email || session.user.email || '',
+                        full_name: data.full_name || session.user.email?.split('@')[0] || 'User',
+                        role: data.role || 'Member',
+                        plan: data.plan || 'Starter',
+                        credits: data.credits ?? 0,
+                        max_credits: data.max_credits || (data.plan === 'Enterprise' ? 500 : data.plan === 'Pro' ? 100 : 20),
+                        company: data.company || '',
+                        avatar_url: data.avatar_url || '',
+                        last_reset_date: data.last_reset_date,
+                        status: data.status || 'Active',
+                        webhook_url: data.webhook_url || '',
+                        webhook_enabled: data.webhook_enabled || false
                     });
                 }
             } catch (err) {
-                console.error("Error checking user status in ProtectedRoute:", err);
+                console.error("Error checking user status/profile in ProtectedRoute:", err);
             }
         };
 
-        checkUserStatus();
-    }, [location.pathname, session, navigate, setSession, setUser]);
+        if (!user || user.id !== session.user.id) {
+            syncProfile();
+        }
+    }, [location.pathname, session, user, navigate, setSession, setUser]);
 
     if (isLoading) {
         return (

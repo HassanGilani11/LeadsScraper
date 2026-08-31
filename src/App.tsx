@@ -283,8 +283,7 @@ const App = () => {
                             last_reset_date: now.toISOString() 
                         })
                         .eq('id', data.id)
-                        .then(() => {})
-                        .catch(err => console.error('Reset credit error:', err));
+                        .then(() => {}, (err: any) => console.error('Reset credit error:', err));
                 }
 
                 setUser({
