@@ -86,6 +86,14 @@ const TopBar: React.FC<TopBarProps> = ({ onMenuClick, title }) => {
         } finally {
             localStorage.clear();
             sessionStorage.clear();
+            if ('caches' in window) {
+                try {
+                    const keys = await caches.keys();
+                    await Promise.all(keys.map(k => caches.delete(k)));
+                } catch (e) {
+                    console.warn('Cache clear error:', e);
+                }
+            }
             navigate('/auth', { replace: true });
         }
     };
