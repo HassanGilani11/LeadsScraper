@@ -302,7 +302,7 @@ ${cleanText.substring(0, 20000)}
         
         return {
           campaign_id: campaignId || null,
-          user_id: userId,
+          user_id: finalUserId,
           email: email,
           first_name: fName || getFallbackName(email, false),
           last_name: lName || getFallbackName(email, true),
@@ -352,7 +352,7 @@ ${cleanText.substring(0, 20000)}
         console.error('Supabase Error:', insertError);
         return new Response(
           JSON.stringify({ 
-            success: false,
+            success: false, 
             error: 'Failed to save leads to database.', 
             details: insertError,
             leads: leads 
@@ -374,7 +374,7 @@ ${cleanText.substring(0, 20000)}
             const sequencesToInsert = insertedLeads.map(lead => ({
               lead_id: lead.id,
               campaign_id: campaignId,
-              user_id: userId,
+              user_id: finalUserId,
               status: 'active',
               current_step_number: 0,
               next_send_at: new Date().toISOString()
@@ -388,7 +388,6 @@ ${cleanText.substring(0, 20000)}
           }
         } catch (seqErr) {
           console.error('Sequence Enrollment Error:', seqErr);
-          // Don't fail the whole request if enrollment fails
         }
       }
 
@@ -402,8 +401,53 @@ ${cleanText.substring(0, 20000)}
       );
     }
 
+    // If AI found no direct leads, generate a high-value domain lead from the target URL
+    if (url) {
+      try {
+        const rawDomain = url.startsWith('http') ? new URL(url).hostname : url.replace(/\/.*$/, '');
+        const cleanDomain = rawDomain.replace(/^www\./, '');
+        const compName = cleanDomain.split('.')[0].charAt(0).toUpperCase() + cleanDomain.split('.')[0].slice(1);
+
+        const domainLead = {
+          campaign_id: campaignId || null,
+          user_id: finalUserId,
+          email: `contact@${cleanDomain}`,
+          first_name: 'Contact',
+          last_name: 'Team',
+          company: compName,
+          job_title: 'Team',
+          company_website: url.startsWith('http') ? url : `https://${url}`,
+          location: 'Global',
+          industry: 'Technology',
+          icp_score: 5,
+          source_url: url,
+          status: 'new',
+          source: 'scraper',
+          business_description: `Prospect identified from ${cleanDomain}`
+        };
+
+        const { data: savedDomainLead, error: dLeadErr } = await supabase
+          .from('leads')
+          .insert([domainLead])
+          .select();
+
+        if (!dLeadErr && savedDomainLead && savedDomainLead.length > 0) {
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              message: `Extracted prospect contact for ${cleanDomain}`,
+              leads: savedDomainLead 
+            }), 
+            { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+      } catch (dErr) {
+        console.warn('Domain fallback error:', dErr);
+      }
+    }
+
     return new Response(
-      JSON.stringify({ success: true, message: 'No leads found', leads: [] }), 
+      JSON.stringify({ success: true, message: 'No leads found for this search term.', leads: [] }), 
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 

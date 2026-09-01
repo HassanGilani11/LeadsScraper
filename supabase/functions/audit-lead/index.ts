@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.3";
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS, PUT, DELETE',
 };
 
 // Initialize Supabase
@@ -18,9 +19,9 @@ Deno.serve(async (req: Request) => {
   try {
     const { leadId, url, userId } = await req.json();
 
-    if (!leadId || !url || !userId) {
-      return new Response(JSON.stringify({ error: 'leadId, url, and userId are required' }), {
-        status: 400,
+    if (!leadId || !url) {
+      return new Response(JSON.stringify({ success: false, error: 'leadId and url are required' }), {
+        status: 200,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
