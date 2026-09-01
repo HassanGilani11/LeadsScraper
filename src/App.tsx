@@ -326,7 +326,7 @@ const App = () => {
     return (
         <>
             <Routes>
-                <Route path="/" element={session ? <Navigate to="/dashboard" replace /> : <LandingPage />} />
+                <Route path="/" element={<LandingPage />} />
                 <Route path="/auth/callback" element={<AuthCallback />} />
                 
                 <Route 

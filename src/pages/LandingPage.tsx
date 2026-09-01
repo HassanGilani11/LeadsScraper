@@ -26,9 +26,11 @@ import {
     ArrowLeft
 } from 'lucide-react';
 import LandingFooter from '@/components/layout/LandingFooter';
+import { useStore } from '@/store/useStore';
 
 const LandingPage = () => {
     const navigate = useNavigate();
+    const { session } = useStore();
 
     return (
         <div className="min-h-screen bg-slate-50 text-slate-900 selection:bg-[#1b57b1]/20 selection:text-[#1b57b1]">
@@ -49,18 +51,29 @@ const LandingPage = () => {
                             <a href="#pricing" className="text-sm font-bold text-slate-600 hover:text-[#1b57b1] transition-colors cursor-pointer">Pricing</a>
                         </div>
                         <div className="flex items-center gap-4">
-                            <button 
-                                onClick={() => navigate('/auth')}
-                                className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
-                            >
-                                Log In
-                            </button>
-                            <button 
-                                onClick={() => navigate('/auth')}
-                                className="bg-[#1b57b1] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 active:scale-95 cursor-pointer"
-                            >
-                                Get Started
-                            </button>
+                            {session ? (
+                                <button 
+                                    onClick={() => navigate('/dashboard')}
+                                    className="bg-[#1b57b1] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 active:scale-95 cursor-pointer flex items-center gap-2"
+                                >
+                                    Dashboard <ArrowRight size={16} />
+                                </button>
+                            ) : (
+                                <>
+                                    <button 
+                                        onClick={() => navigate('/auth')}
+                                        className="text-sm font-bold text-slate-600 hover:text-slate-900 transition-colors cursor-pointer"
+                                    >
+                                        Log In
+                                    </button>
+                                    <button 
+                                        onClick={() => navigate('/auth')}
+                                        className="bg-[#1b57b1] text-white px-6 py-2.5 rounded-xl text-sm font-bold hover:bg-[#154690] transition-all shadow-lg shadow-[#1b57b1]/20 active:scale-95 cursor-pointer"
+                                    >
+                                        Get Started
+                                    </button>
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>
