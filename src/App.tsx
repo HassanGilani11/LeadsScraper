@@ -78,7 +78,6 @@ const App = () => {
 
     useEffect(() => {
         let mounted = true;
-        let isFetchingProfile = false;
 
         const loadUserSession = async (currentSession: any) => {
             if (!currentSession?.user) {
@@ -94,14 +93,7 @@ const App = () => {
                 setSession(currentSession);
             }
 
-            if (!isFetchingProfile) {
-                isFetchingProfile = true;
-                try {
-                    await fetchProfile(currentSession.user.id, currentSession.user.email || '');
-                } finally {
-                    isFetchingProfile = false;
-                }
-            }
+            await fetchProfile(currentSession.user.id, currentSession.user.email || '');
         };
 
         // Safety fallback timer: guarantee page loading is NEVER stuck indefinitely
@@ -109,7 +101,7 @@ const App = () => {
             if (mounted) {
                 setLoading(false);
             }
-        }, 3000);
+        }, 4000);
 
         // 1. Initial Session Check
         supabase.auth.getSession().then(({ data: { session }, error }) => {
@@ -141,12 +133,8 @@ const App = () => {
                 return;
             }
 
-            if (event === 'SIGNED_IN' || event === 'PASSWORD_RECOVERY' || event === 'USER_UPDATED' || !user) {
-                await loadUserSession(session);
-            } else {
-                setSession(session);
-                setLoading(false);
-            }
+            // Always ensure user profile is synced for any active session event
+            await loadUserSession(session);
         });
 
         return () => {

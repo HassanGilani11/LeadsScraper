@@ -73,7 +73,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         }
     }, [location.pathname, session, user, navigate, setSession, setUser]);
 
-    if (isLoading) {
+    if (isLoading || (session && !user)) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-slate-50">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1b57b1]"></div>
