@@ -18,7 +18,7 @@ const LeadScraper = () => {
     const [autoAudit, setAutoAudit] = useState(true);
 
     const navigate = useNavigate();
-    const { user, campaigns, addLead, updateCampaign, setUser } = useStore();
+    const { user, session, campaigns, addLead, updateCampaign, setUser } = useStore();
     const [selectedCampaignId, setSelectedCampaignId] = useState<string>('');
     const [stats, setStats] = useState({ totalLeads: 0, avgMatch: 0 });
 
@@ -41,11 +41,10 @@ const LeadScraper = () => {
                 .select('icp_score')
                 .eq('user_id', user!.id);
 
-            if (leads) {
+            if (leads && leads.length > 0) {
                 const total = leads.length;
-                const avg = total > 0 
-                    ? Math.round((leads.reduce((acc, curr) => acc + (Number(curr.icp_score) || 0), 0) / total) * 10)
-                    : 0;
+                const sum = leads.reduce((acc, curr) => acc + (Number(curr.icp_score) || 0), 0);
+                const avg = Math.round((sum / total) * 10);
                 setStats({ totalLeads: total, avgMatch: avg });
             }
         } catch (err) {
@@ -59,13 +58,14 @@ const LeadScraper = () => {
             return;
         }
 
-        if (!user) {
+        const currentUserId = user?.id || session?.user?.id;
+        if (!currentUserId) {
             setError('You must be logged in to scrape leads.');
             return;
         }
 
         // Credit Check
-        if (user.credits >= user.max_credits) {
+        if (user && user.credits >= user.max_credits) {
             setIsUpgradeModalOpen(true);
             return;
         }
@@ -73,13 +73,14 @@ const LeadScraper = () => {
         try {
             setError(null);
             setSuccess(null);
+            setLoading(true);
             toast.loading(`Starting extraction for ${url}...`, { id: 'scrape-toast' });
 
             const payload = {
                 url,
                 textContent: `Analyze website: ${url}`,
                 campaignId: selectedCampaignId || null,
-                userId: user.id
+                userId: currentUserId
             };
 
             const response = await supabase.functions.invoke('extract-leads', {
@@ -90,17 +91,18 @@ const LeadScraper = () => {
 
             if (functionError) {
                 console.error("Function error:", functionError);
-                
                 let errorMsg = "Failed to reach extraction service.";
-                
                 if (functionError instanceof Error) {
                     errorMsg = `Extraction error: ${functionError.message}`;
                 } else if (typeof functionError === 'object' && functionError !== null) {
                     const errObj = functionError as any;
-                    errorMsg = `Server error (${errObj.status || 'unknown'}): ${errObj.message || 'Check Supabase logs'}`;
+                    errorMsg = `Server error: ${errObj.message || 'Please verify the website URL'}`;
                 }
-                
                 throw new Error(errorMsg);
+            }
+
+            if (data && data.success === false) {
+                throw new Error(data.error || data.message || 'Extraction failed');
             }
 
             if (data?.success) {
@@ -114,38 +116,40 @@ const LeadScraper = () => {
                     const extractedCount = data.leads.length;
 
                     // Deduct (increment used) credits
-                    const newCredits = user.credits + extractedCount;
-                    
-                    // Update database
-                    await supabase
-                        .from('profiles')
-                        .update({ credits: newCredits })
-                        .eq('id', user.id);
-                    
-                    // Update store
-                    setUser({
-                        ...user,
-                        credits: newCredits
-                    });
+                    if (user) {
+                        const newCredits = user.credits + extractedCount;
+                        
+                        // Update database
+                        await supabase
+                            .from('profiles')
+                            .update({ credits: newCredits })
+                            .eq('id', user.id);
+                        
+                        // Update store
+                        setUser({
+                            ...user,
+                            credits: newCredits
+                        });
 
-                    // Trigger Webhook if configured
-                    if (user.webhook_enabled && user.webhook_url) {
-                        try {
-                            fetch(user.webhook_url, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({
-                                    event: 'lead.scraped',
-                                    timestamp: new Date().toISOString(),
-                                    user_email: user.email,
-                                    campaign_id: selectedCampaignId || null,
-                                    leads: data.leads
-                                })
-                            }).catch(err => console.error('Webhook execution failed:', err));
-                        } catch (webhookErr) {
-                            console.error('Failed to trigger webhook:', webhookErr);
+                        // Trigger Webhook if configured
+                        if (user.webhook_enabled && user.webhook_url) {
+                            try {
+                                fetch(user.webhook_url, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        event: 'lead.scraped',
+                                        timestamp: new Date().toISOString(),
+                                        user_email: user.email,
+                                        campaign_id: selectedCampaignId || null,
+                                        leads: data.leads
+                                    })
+                                }).catch(err => console.error('Webhook execution failed:', err));
+                            } catch (webhookErr) {
+                                console.error('Failed to trigger webhook:', webhookErr);
+                            }
                         }
                     }
 
@@ -176,7 +180,7 @@ const LeadScraper = () => {
                         }
                     });
 
-                    // AUTO-AUDIT LOGIC
+                    // Auto Audit Trigger if selected
                     if (autoAudit) {
                         const leadsToAudit = data.leads.filter((l: any) => l.company_website || l.source_url);
                         if (leadsToAudit.length > 0) {
@@ -187,7 +191,7 @@ const LeadScraper = () => {
                                     body: { 
                                         leadId: lead.id, 
                                         url: lead.company_website || lead.source_url, 
-                                        userId: user.id 
+                                        userId: currentUserId 
                                     }
                                 }).catch(err => console.error(`Auto-audit failed for ${lead.id}:`, err));
                             });

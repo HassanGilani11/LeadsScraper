@@ -75,11 +75,30 @@ Deno.serve(async (req: Request) => {
     const { url, textContent, campaignId, userId } = await req.json();
 
     if (!textContent && !url) {
-      return new Response('Must provide textContent or url', { status: 400, headers: corsHeaders });
+      return new Response(
+        JSON.stringify({ success: false, error: 'Must provide textContent or url' }), 
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    if (!userId) {
-       return new Response('Must provide userId', { status: 400, headers: corsHeaders });
+    let finalUserId = userId;
+    if (!finalUserId) {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader) {
+        try {
+          const { data: { user: authUser } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
+          if (authUser) finalUserId = authUser.id;
+        } catch (authErr) {
+          console.warn('Could not extract user from auth header:', authErr);
+        }
+      }
+    }
+
+    if (!finalUserId) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'User ID is required. Please make sure you are logged in.' }), 
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     let contentToAnalyze = textContent || "";
